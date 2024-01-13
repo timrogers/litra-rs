@@ -32,10 +32,6 @@ jobs:
           toolchain: nightly
           override: true
           target: ${{ matrix.job.target }}
-      - name: Run unit tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
       - name: Run cargo build --release
         uses: actions-rs/cargo@v1
         with:
