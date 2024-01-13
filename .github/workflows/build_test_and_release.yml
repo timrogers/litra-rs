@@ -1,0 +1,75 @@
+name: Build, test and release
+
+on: push
+
+jobs:
+  build:
+    name: Build and test
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: x86_64-unknown-linux-musl, binary_name: linux-amd64, os: ubuntu-latest }
+          - { target: x86_64-apple-darwin, binary_name: darwin-amd64, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, binary_name: windows-amd64.exe, os: windows-latest }
+    runs-on: ${{ matrix.job.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3.3.2
+        with:
+          path: target
+          key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-
+      - name: Install latest Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustc, cargo
+          toolchain: nightly
+          override: true
+          target: ${{ matrix.job.target }}
+      - name: Run unit tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+      - name: Run cargo build --release
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          args: --release --target=${{ matrix.job.target }} 
+          command: build
+      - name: Rename binary to filename expected by GitHub CLI
+        if: startsWith(github.event.ref, 'refs/tags/v')
+        run: |
+          rm target/${{ matrix.job.target }}/release/litra.d
+          cp target/${{ matrix.job.target }}/release/litra* litra_${{ github.ref_name }}_${{ matrix.job.binary_name }}
+      - name: Upload binary
+        if: startsWith(github.event.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          path: litra_${{ github.ref_name }}_${{ matrix.job.binary_name }}
+          name: litra_${{ github.ref_name }}_${{ matrix.job.binary_name }}
+  release:
+    name: Create release with binary assets
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: litra_${{ github.ref_name }}_linux-amd64
+      - uses: actions/download-artifact@v4
+        with:
+          name: litra_${{ github.ref_name }}_darwin-amd64
+      - uses: actions/download-artifact@v4
+        with:
+          name: litra_${{ github.ref_name }}_windows-amd64.exe
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            litra_${{ github.ref_name }}_windows-amd64.exe
+            litra_${{ github.ref_name }}_darwin-amd64
+            litra_${{ github.ref_name }}_linux-amd64
