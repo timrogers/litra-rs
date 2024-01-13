@@ -18,7 +18,7 @@ jobs:
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
       - name: Cache Rust dependencies
-        uses: actions/cache@v3.3.2
+        uses: actions/cache@v3.3.3
         with:
           path: target
           key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
