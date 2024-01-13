@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install libudev-dev
+        run: sudo apt-get update && sudo apt-get install libudev-dev
       - name: Install latest Rust nightly
         uses: actions-rs/toolchain@v1
         with:
