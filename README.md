@@ -23,9 +23,16 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 
 ## Installation
 
-1. Download and extract the [latest release](https://github.com/timrogers/litra-rs/releases/latest) for your platform. macOS, Linux and Windows devices are supported.
-2. Add the extracted binary to your path, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
-3. Run `litra --help` to check that everything is working and see the available commands.
+### macOS with [Homebrew](https://brew.sh/)
+
+1. Install the latest version by running `brew tap timrogers/tap && brew install litra`.
+1. Run `litra --help` to check that everything is working and see the available commands.
+
+### All other platforms
+
+1. Download the [latest release](https://github.com/timrogers/litra-rs/releases/latest) for your platform. macOS, Linux and Windows devices are supported.
+1. Add the binary to `$PATH`, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
+1. Run `litra --help` to check that everything is working and see the available commands.
 
 ## Usage
 
