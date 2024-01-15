@@ -37,7 +37,7 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = "The brightness to set, measured in lumens",
+            help = "The brightness to set, measured in lumens. This can be set to any value between the minimum and maximum for the device returned by the `devices` command.",
             group = "brightness"
         )]
         value: Option<u16>,
@@ -56,7 +56,7 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = "The temperature to set, measured in Kelvin. You can check the allowed values for your device with the `devices` command."
+            help = "The temperature to set, measured in Kelvin. This can be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command."
         )]
         value: u16,
     },
