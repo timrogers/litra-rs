@@ -41,8 +41,8 @@ The following commands are available for controlling your devices:
 - `litra on`: Turn your Logitech Litra device on
 - `litra off`: Turn your Logitech Litra device off
 - `litra toggle`: Toggles your Logitech Litra device on or off
-- `litra brightness`:  Sets the brightness of your Logitech Litra device, using either `--value` (measured in lumens) or `--percentage` (as a percentage of the device's maximum brightness)
-- `litra temperature`:  Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K)
+- `litra brightness`:  Sets the brightness of your Logitech Litra device, using either `--value` (measured in lumens) or `--percentage` (as a percentage of the device's maximum brightness). The brightness can be set to any value between the minimum and maximum for the device returned by the `devices` command.
+- `litra temperature`:  Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The temperature be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command.
 
 All of the these commands support a `--serial-number`/`-s` argument to specify the serial number of the device you want to target. If you only have one Litra device, you can omit this argument. If you have multiple devices, we recommend specifying it. If it isn't specified, the "first" device will be picked, but this isn't guaranteed to be stable between command runs.
 
