@@ -98,7 +98,8 @@ struct Device {
     device_handle: HidDevice,
     minimum_brightness_in_lumen: u16,
     maximum_brightness_in_lumen: u16,
-    allowed_temperatures_in_kelvin: Vec<u16>,
+    minimum_temperature_in_kelvin: u16,
+    maximum_temperature_in_kelvin: u16,
 }
 
 const VENDOR_ID: u16 = 0x046d;
@@ -136,9 +137,8 @@ fn multiples_within_range(multiples_of: u16, start_range: u16, end_range: u16) -
         .collect()
 }
 
-fn get_allowed_temperatures_in_kelvin(_device_type: &DeviceType) -> Vec<u16> {
-    return multiples_within_range(100, 2700, 6500);
-}
+const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
+const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
 fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Device> {
     let hid_devices = api.device_list();
@@ -170,7 +170,6 @@ fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Devi
             let temperature_in_kelvin = get_temperature_in_kelvin(&device_handle, &device_type);
             let minimum_brightness_in_lumen = get_minimum_brightness_in_lumen(&device_type);
             let maximum_brightness_in_lumen = get_maximum_brightness_in_lumen(&device_type);
-            let allowed_temperatures_in_kelvin = get_allowed_temperatures_in_kelvin(&device_type);
 
             Device {
                 serial_number: device.serial_number().unwrap_or("").to_string(),
@@ -181,7 +180,8 @@ fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Devi
                 device_handle: device_handle,
                 minimum_brightness_in_lumen: minimum_brightness_in_lumen,
                 maximum_brightness_in_lumen: maximum_brightness_in_lumen,
-                allowed_temperatures_in_kelvin: allowed_temperatures_in_kelvin,
+                minimum_temperature_in_kelvin: MINIMUM_TEMPERATURE_IN_KELVIN,
+                maximum_temperature_in_kelvin: MAXIMUM_TEMPERATURE_IN_KELVIN,
             }
         })
         .collect();
@@ -538,17 +538,9 @@ fn main() {
                     println!("  - Brightness: {} lm", device.brightness_in_lumen,);
                     println!("    - Minimum: {} lm", device.minimum_brightness_in_lumen);
                     println!("    - Maximum: {} lm", device.maximum_brightness_in_lumen);
-
-                    let comma_separated_values = device
-                        .allowed_temperatures_in_kelvin
-                        .iter()
-                        .map(|x| x.to_string())
-                        .map(|x| format!("{} K", x))
-                        .collect::<Vec<String>>()
-                        .join(", ");
-
                     println!("  - Temperature: {} K", device.temperature_in_kelvin);
-                    println!("    - Allowed values: {}", comma_separated_values);
+                    println!("    - Minimum: {} K", device.minimum_temperature_in_kelvin);
+                    println!("    - Maximum: {} K", device.maximum_temperature_in_kelvin);
                 }
 
                 if litra_devices.len() < 1 {
@@ -659,18 +651,16 @@ fn main() {
 
             let device = &devices[0];
 
-            if !device.allowed_temperatures_in_kelvin.contains(&value) {
-                let comma_separated_values = device
-                    .allowed_temperatures_in_kelvin
-                    .iter()
-                    .map(|x| x.to_string())
-                    .map(|x| format!("{} K", x))
-                    .collect::<Vec<String>>()
-                    .join(", ");
+            let allowed_temperatures_in_kelvin = multiples_within_range(
+                100,
+                device.minimum_temperature_in_kelvin,
+                device.maximum_temperature_in_kelvin,
+            );
 
+            if !allowed_temperatures_in_kelvin.contains(&value) {
                 println!(
-                    "Temperature must be set to one of the following allowed values in kelvin (K): {}",
-                    comma_separated_values
+                    "Temperature must be set to a multiple of 100 between {} K and {} K",
+                    device.minimum_temperature_in_kelvin, device.maximum_temperature_in_kelvin
                 );
                 std::process::exit(exitcode::DATAERR);
             }
