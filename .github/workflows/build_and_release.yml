@@ -69,3 +69,21 @@ jobs:
             litra_${{ github.ref_name }}_windows-amd64.exe
             litra_${{ github.ref_name }}_darwin-amd64
             litra_${{ github.ref_name }}_linux-amd64
+  publish_on_homebrew:
+    name: Publish release on Homebrew
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - name: Get released version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+      - uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: litra
+          download-url: https://github.com/timrogers/litra-rs/releases/download/${{ steps.get_version.outputs.VERSION }}/litra_${{ steps.get_version.outputs.VERSION }}_darwin-amd64
+          homebrew-tap: timrogers/homebrew-tap
+          push-to: timrogers/homebrew-tap
+          create-pullrequest: true
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
