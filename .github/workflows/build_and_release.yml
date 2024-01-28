@@ -38,10 +38,15 @@ jobs:
         with:
           args: --release --target=${{ matrix.job.target }} 
           command: build
-      - name: Rename binary to use structured filename
+      - name: Rename Windows binary to use structured filename
+        run: |
+          cp target/${{ matrix.job.target }}/release/litra.exe litra_${{ github.ref_name }}_${{ matrix.job.binary_name }}
+        if: runner.os == 'Windows'
+      - name: Rename Unix binary to use structured filename
         run: |
           rm target/${{ matrix.job.target }}/release/litra.d
           cp target/${{ matrix.job.target }}/release/litra* litra_${{ github.ref_name }}_${{ matrix.job.binary_name }}
+        if: runner.os != 'Windows'
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
         with:

@@ -104,6 +104,7 @@ struct Device {
 
 const VENDOR_ID: u16 = 0x046d;
 const PRODUCT_IDS: [u16; 4] = [0xc900, 0xc901, 0xb901, 0xc903];
+const USAGE_PAGE: u16 = 0xff43;
 
 fn get_device_type(product_id: u16) -> DeviceType {
     match product_id {
@@ -146,7 +147,10 @@ fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Devi
     let mut litra_devices = Vec::new();
 
     for device in hid_devices {
-        if device.vendor_id() == VENDOR_ID && PRODUCT_IDS.contains(&device.product_id()) {
+        if device.vendor_id() == VENDOR_ID
+            && PRODUCT_IDS.contains(&device.product_id())
+            && device.usage_page() == USAGE_PAGE
+        {
             if let Some(serial_number) = &serial_number {
                 if device.serial_number().unwrap_or("") != *serial_number {
                     continue;
@@ -156,9 +160,6 @@ fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Devi
             litra_devices.push(device);
         }
     }
-
-    // On my macOS Sonoma device, every Litra device is returned twice for some reason
-    litra_devices.dedup_by(|a, b| a.path() == b.path());
 
     return litra_devices
         .iter()
