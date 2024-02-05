@@ -40,7 +40,7 @@ jobs:
           command: build
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
-        run: echo "::set-output name=value::${{ replace(github.ref_name, '/', '_') }}"
+        run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
       - name: Rename Windows binary to use structured filename
         run: |
           cp target/${{ matrix.job.target }}/release/litra.exe litra_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
-        run: echo "::set-output name=value::${{ replace(github.ref_name, '/', '_') }}"
+        run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
       - uses: actions/download-artifact@v4
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
