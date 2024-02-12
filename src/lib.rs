@@ -92,7 +92,13 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<
 
     return litra_devices
         .iter()
-        .filter_map(|device| api.open_path(device.path()).ok().map(|device_handle| (device, device_handle)))
+        .filter_map(|device| match api.open_path(device.path()) {
+            Ok(device_handle) => Some((device, device_handle)),
+            Err(err) => {
+                println!("Failed to open device {:?}: {:?}", device.path(), err);
+                None
+            }
+        })
         .map(|(device, device_handle)| {
             let device_type = get_device_type(device.product_id());
             let is_on = is_on(&device_handle, &device_type);
