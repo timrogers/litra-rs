@@ -72,26 +72,23 @@ const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
 pub fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Device> {
     let hid_devices = api.device_list();
-
-    let mut litra_devices = Vec::new();
-
-    for device in hid_devices {
-        if device.vendor_id() == VENDOR_ID
-            && PRODUCT_IDS.contains(&device.product_id())
-            && device.usage_page() == USAGE_PAGE
-        {
-            if let Some(serial_number) = &serial_number {
-                if device.serial_number().unwrap_or("") != *serial_number {
-                    continue;
-                }
-            }
-
-            litra_devices.push(device);
-        }
-    }
+    let litra_devices = hid_devices
+        .into_iter()
+        .filter(|device| {
+            device.vendor_id() == VENDOR_ID
+                && PRODUCT_IDS.contains(&device.product_id())
+                && device.usage_page() == USAGE_PAGE
+        })
+        .filter(|device| {
+            serial_number.is_none()
+                || serial_number.as_ref().is_some_and(|expected| {
+                    device
+                        .serial_number()
+                        .is_some_and(|actual| actual == expected)
+                })
+        });
 
     return litra_devices
-        .iter()
         .filter_map(|device| match api.open_path(device.path()) {
             Ok(device_handle) => Some((device, device_handle)),
             Err(err) => {
