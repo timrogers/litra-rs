@@ -2,6 +2,13 @@
 name = "litra"
 version = "0.2.1"
 edition = "2021"
+authors = ["Tim Rogers <timrogers@github.com>"]
+description = "Control your Logitech Litra light from the command line"
+repository = "https://github.com/timrogers/litra-rs"
+license = "MIT"
+readme = "README.md"
+categories = ["hardware-support", "command-line-utilities"]
+keywords = ["logitech", "litra", "glow", "beam", "light"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
