@@ -28,13 +28,21 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 1. Install the latest version by running `brew tap timrogers/tap && brew install litra`.
 1. Run `litra --help` to check that everything is working and see the available commands.
 
-### All other platforms
+### All other platforms (using Cargo)
+
+1. Install [Rust](https://www.rust-lang.org/tools/install) on your machine, if it isn't already installed.
+1. Install the `litra` crate by running `cargo install litra`.
+1. Run `litra --help` to check that everything is working and see the available commands.
+
+### All other platforms (via binary)
 
 1. Download the [latest release](https://github.com/timrogers/litra-rs/releases/latest) for your platform. macOS, Linux and Windows devices are supported.
 1. Add the binary to `$PATH`, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
 1. Run `litra --help` to check that everything is working and see the available commands.
 
 ## Usage
+
+### From the command line
 
 The following commands are available for controlling your devices:
 
@@ -51,3 +59,7 @@ The following commands are also included:
 - `litra devices`: List Logitech Litra devices connected to your computer. This will be returned in human-readable format by default, or you can get JSON output with the `--json` flag.
 
 Each CLI command can also be called with `--help` for more detailed documentation.
+
+### From a Rust application
+
+The `litra` crate includes functions for interacting with Litra devices from your Rust applications. To see the full API, check out `src/lib.ts`.
