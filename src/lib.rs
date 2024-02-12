@@ -186,7 +186,7 @@ pub fn get_temperature_in_kelvin(device_handle: &HidDevice, device_type: &Device
 
     let mut response_buffer = [0x00; 20];
     let response = device_handle.read(&mut response_buffer[..]).unwrap();
-    (response_buffer[..response][4] as u16 * 256 + response_buffer[..response][5] as u16).into()
+    u16::from(response_buffer[..response][4]) * 256 + u16::from(response_buffer[..response][5])
 }
 
 fn generate_turn_on_bytes(device_type: &DeviceType) -> [u8; 20] {
