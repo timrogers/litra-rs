@@ -249,15 +249,11 @@ pub fn turn_off(device_handle: &HidDevice, device_type: &DeviceType) {
     device_handle.write(&message).unwrap();
 }
 
-fn integer_to_bytes(integer: u16) -> [u8; 2] {
-    [(integer / 256) as u8, (integer % 256) as u8]
-}
-
 fn generate_set_brightness_in_lumen_bytes(
     device_type: &DeviceType,
     brightness_in_lumen: u16,
 ) -> [u8; 20] {
-    let brightness_bytes = integer_to_bytes(brightness_in_lumen);
+    let brightness_bytes = brightness_in_lumen.to_be_bytes();
 
     match device_type {
         DeviceType::LitraGlow => [
@@ -343,7 +339,7 @@ fn generate_set_temperature_in_kelvin_bytes(
     device_type: &DeviceType,
     temperature_in_kelvin: u16,
 ) -> [u8; 20] {
-    let temperature_bytes = integer_to_bytes(temperature_in_kelvin);
+    let temperature_bytes = temperature_in_kelvin.to_be_bytes();
 
     match device_type {
         DeviceType::LitraGlow => [
