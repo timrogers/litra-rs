@@ -123,7 +123,7 @@ fn main() {
                     println!("    - Maximum: {} K", device.maximum_temperature_in_kelvin);
                 }
 
-                if litra_devices.len() < 1 {
+                if litra_devices.is_empty() {
                     println!("No devices found");
                 }
             }
@@ -131,7 +131,7 @@ fn main() {
         Commands::On { serial_number } => {
             let devices = get_connected_devices(api, serial_number.as_deref());
 
-            if devices.len() == 0 {
+            if devices.is_empty() {
                 println!("Device not found");
                 std::process::exit(exitcode::DATAERR);
             }
@@ -143,7 +143,7 @@ fn main() {
         Commands::Off { serial_number } => {
             let devices = get_connected_devices(api, serial_number.as_deref());
 
-            if devices.len() == 0 {
+            if devices.is_empty() {
                 println!("Device not found");
                 std::process::exit(exitcode::DATAERR);
             }
@@ -155,7 +155,7 @@ fn main() {
         Commands::Toggle { serial_number } => {
             let devices = get_connected_devices(api, serial_number.as_deref());
 
-            if devices.len() == 0 {
+            if devices.is_empty() {
                 println!("Device not found");
                 std::process::exit(exitcode::DATAERR);
             }
@@ -175,7 +175,7 @@ fn main() {
         } => {
             let devices = get_connected_devices(api, serial_number.as_deref());
 
-            if devices.len() == 0 {
+            if devices.is_empty() {
                 println!("Device not found");
                 std::process::exit(exitcode::DATAERR);
             }
@@ -224,7 +224,7 @@ fn main() {
         } => {
             let devices = get_connected_devices(api, serial_number.as_deref());
 
-            if devices.len() == 0 {
+            if devices.is_empty() {
                 println!("Device not found");
                 std::process::exit(exitcode::DATAERR);
             }
