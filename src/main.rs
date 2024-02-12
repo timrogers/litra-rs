@@ -237,7 +237,7 @@ fn main() {
                 device.maximum_temperature_in_kelvin,
             );
 
-            if !allowed_temperatures_in_kelvin.contains(&value) {
+            if !allowed_temperatures_in_kelvin.contains(value) {
                 println!(
                     "Temperature must be set to a multiple of 100 between {} K and {} K",
                     device.minimum_temperature_in_kelvin, device.maximum_temperature_in_kelvin
