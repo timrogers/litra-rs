@@ -92,9 +92,9 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<
 
     return litra_devices
         .iter()
-        .map(|device| {
+        .filter_map(|device| api.open_path(device.path()).ok().map(|device_handle| (device, device_handle)))
+        .map(|(device, device_handle)| {
             let device_type = get_device_type(device.product_id());
-            let device_handle = api.open_path(device.path()).unwrap();
             let is_on = is_on(&device_handle, &device_type);
             let brightness_in_lumen = get_brightness_in_lumen(&device_handle, &device_type);
             let temperature_in_kelvin = get_temperature_in_kelvin(&device_handle, &device_type);
