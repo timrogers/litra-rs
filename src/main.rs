@@ -129,7 +129,7 @@ fn main() {
             }
         }
         Commands::On { serial_number } => {
-            let devices = get_connected_devices(api, serial_number.clone());
+            let devices = get_connected_devices(api, serial_number.as_deref());
 
             if devices.len() == 0 {
                 println!("Device not found");
@@ -141,7 +141,7 @@ fn main() {
             turn_on(&device.device_handle, &device.device_type);
         }
         Commands::Off { serial_number } => {
-            let devices = get_connected_devices(api, serial_number.clone());
+            let devices = get_connected_devices(api, serial_number.as_deref());
 
             if devices.len() == 0 {
                 println!("Device not found");
@@ -153,7 +153,7 @@ fn main() {
             turn_off(&device.device_handle, &device.device_type);
         }
         Commands::Toggle { serial_number } => {
-            let devices = get_connected_devices(api, serial_number.clone());
+            let devices = get_connected_devices(api, serial_number.as_deref());
 
             if devices.len() == 0 {
                 println!("Device not found");
@@ -173,7 +173,7 @@ fn main() {
             value,
             percentage,
         } => {
-            let devices = get_connected_devices(api, serial_number.clone());
+            let devices = get_connected_devices(api, serial_number.as_deref());
 
             if devices.len() == 0 {
                 println!("Device not found");
@@ -222,7 +222,7 @@ fn main() {
             serial_number,
             value,
         } => {
-            let devices = get_connected_devices(api, serial_number.clone());
+            let devices = get_connected_devices(api, serial_number.as_deref());
 
             if devices.len() == 0 {
                 println!("Device not found");
