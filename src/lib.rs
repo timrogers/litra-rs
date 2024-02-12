@@ -70,7 +70,7 @@ fn get_maximum_brightness_in_lumen(device_type: &DeviceType) -> u16 {
 const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
 const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
-pub fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<Device> {
+pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<Device> {
     let hid_devices = api.device_list();
     let litra_devices = hid_devices
         .into_iter()
@@ -84,7 +84,7 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<String>) -> Vec<
                 || serial_number.as_ref().is_some_and(|expected| {
                     device
                         .serial_number()
-                        .is_some_and(|actual| actual == expected)
+                        .is_some_and(|actual| &actual == expected)
                 })
         });
 
