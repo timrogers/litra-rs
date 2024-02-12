@@ -104,13 +104,13 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<De
 
             Device {
                 serial_number: device.serial_number().unwrap_or("").to_string(),
-                device_type: device_type,
-                is_on: is_on,
-                brightness_in_lumen: brightness_in_lumen,
-                temperature_in_kelvin: temperature_in_kelvin,
-                device_handle: device_handle,
-                minimum_brightness_in_lumen: minimum_brightness_in_lumen,
-                maximum_brightness_in_lumen: maximum_brightness_in_lumen,
+                device_type,
+                is_on,
+                brightness_in_lumen,
+                temperature_in_kelvin,
+                device_handle,
+                minimum_brightness_in_lumen,
+                maximum_brightness_in_lumen,
                 minimum_temperature_in_kelvin: MINIMUM_TEMPERATURE_IN_KELVIN,
                 maximum_temperature_in_kelvin: MAXIMUM_TEMPERATURE_IN_KELVIN,
             }
