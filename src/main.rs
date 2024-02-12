@@ -75,18 +75,18 @@ fn percentage_within_range(percentage: u32, start_range: u32, end_range: u32) ->
 
 fn get_is_on_text(is_on: bool) -> &'static str {
     if is_on {
-        return "On";
+        "On"
+    } else {
+        "Off"
     }
-
-    return "Off";
 }
 
 fn get_is_on_emoji(is_on: bool) -> &'static str {
     if is_on {
-        return "💡";
+        "💡"
+    } else {
+        "🌑"
     }
-
-    return "🌑";
 }
 
 fn multiples_within_range(multiples_of: u16, start_range: u16, end_range: u16) -> Vec<u16> {

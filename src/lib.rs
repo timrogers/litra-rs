@@ -88,7 +88,7 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<De
                 })
         });
 
-    return litra_devices
+    litra_devices
         .filter_map(|device| match api.open_path(device.path()) {
             Ok(device_handle) => Some((device, device_handle)),
             Err(err) => {
@@ -117,7 +117,7 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<De
                 maximum_temperature_in_kelvin: MAXIMUM_TEMPERATURE_IN_KELVIN,
             }
         })
-        .collect();
+        .collect()
 }
 
 fn generate_is_on_bytes(device_type: &DeviceType) -> [u8; 20] {
@@ -145,7 +145,7 @@ pub fn is_on(device_handle: &HidDevice, device_type: &DeviceType) -> bool {
     let mut response_buffer = [0x00; 20];
     let response = device_handle.read(&mut response_buffer[..]).unwrap();
 
-    return response_buffer[..response][4] == 1;
+    response_buffer[..response][4] == 1
 }
 
 fn generate_get_brightness_in_lumen_bytes(device_type: &DeviceType) -> [u8; 20] {
@@ -173,7 +173,7 @@ pub fn get_brightness_in_lumen(device_handle: &HidDevice, device_type: &DeviceTy
     let mut response_buffer = [0x00; 20];
     let response = device_handle.read(&mut response_buffer[..]).unwrap();
 
-    return response_buffer[..response][5].into();
+    response_buffer[..response][5].into()
 }
 
 fn generate_get_temperature_in_kelvin_bytes(device_type: &DeviceType) -> [u8; 20] {
@@ -200,8 +200,7 @@ pub fn get_temperature_in_kelvin(device_handle: &HidDevice, device_type: &Device
 
     let mut response_buffer = [0x00; 20];
     let response = device_handle.read(&mut response_buffer[..]).unwrap();
-    return (response_buffer[..response][4] as u16 * 256 + response_buffer[..response][5] as u16)
-        .into();
+    (response_buffer[..response][4] as u16 * 256 + response_buffer[..response][5] as u16).into()
 }
 
 fn generate_turn_on_bytes(device_type: &DeviceType) -> [u8; 20] {
@@ -251,7 +250,7 @@ pub fn turn_off(device_handle: &HidDevice, device_type: &DeviceType) {
 }
 
 fn integer_to_bytes(integer: u16) -> [u8; 2] {
-    return [(integer / 256) as u8, (integer % 256) as u8];
+    [(integer / 256) as u8, (integer % 256) as u8]
 }
 
 fn generate_set_brightness_in_lumen_bytes(
