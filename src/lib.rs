@@ -54,16 +54,14 @@ fn get_device_type(product_id: u16) -> DeviceType {
 fn get_minimum_brightness_in_lumen(device_type: &DeviceType) -> u16 {
     match device_type {
         DeviceType::LitraGlow => 20,
-        DeviceType::LitraBeam => 30,
-        DeviceType::LitraBeamLX => 30,
+        DeviceType::LitraBeam | DeviceType::LitraBeamLX => 30,
     }
 }
 
 fn get_maximum_brightness_in_lumen(device_type: &DeviceType) -> u16 {
     match device_type {
         DeviceType::LitraGlow => 250,
-        DeviceType::LitraBeam => 400,
-        DeviceType::LitraBeamLX => 400,
+        DeviceType::LitraBeam | DeviceType::LitraBeamLX => 400,
     }
 }
 
@@ -122,11 +120,7 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<De
 
 fn generate_is_on_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11, 0xff, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
@@ -150,11 +144,7 @@ pub fn is_on(device_handle: &HidDevice, device_type: &DeviceType) -> bool {
 
 fn generate_get_brightness_in_lumen_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11, 0xff, 0x04, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
@@ -178,11 +168,7 @@ pub fn get_brightness_in_lumen(device_handle: &HidDevice, device_type: &DeviceTy
 
 fn generate_get_temperature_in_kelvin_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11, 0xff, 0x04, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
@@ -205,11 +191,7 @@ pub fn get_temperature_in_kelvin(device_handle: &HidDevice, device_type: &Device
 
 fn generate_turn_on_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11, 0xff, 0x04, 0x1c, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x1c, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
@@ -228,11 +210,7 @@ pub fn turn_on(device_handle: &HidDevice, device_type: &DeviceType) {
 
 fn generate_turn_off_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11, 0xff, 0x04, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
@@ -256,29 +234,7 @@ fn generate_set_brightness_in_lumen_bytes(
     let brightness_bytes = brightness_in_lumen.to_be_bytes();
 
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11,
-            0xff,
-            0x04,
-            0x4c,
-            brightness_bytes[0],
-            brightness_bytes[1],
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11,
             0xff,
             0x04,
@@ -342,29 +298,7 @@ fn generate_set_temperature_in_kelvin_bytes(
     let temperature_bytes = temperature_in_kelvin.to_be_bytes();
 
     match device_type {
-        DeviceType::LitraGlow => [
-            0x11,
-            0xff,
-            0x04,
-            0x9c,
-            temperature_bytes[0],
-            temperature_bytes[1],
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-        ],
-        DeviceType::LitraBeam => [
+        DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11,
             0xff,
             0x04,
