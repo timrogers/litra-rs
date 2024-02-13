@@ -1,6 +1,7 @@
 use clap::{ArgGroup, Parser, Subcommand};
 use litra::{
     get_connected_devices, set_brightness_in_lumen, set_temperature_in_kelvin, turn_off, turn_on,
+    Device,
 };
 
 /// Control your USB-connected Logitech Litra lights from the command line
@@ -101,7 +102,7 @@ fn main() {
 
     match &args.command {
         Commands::Devices { json } => {
-            let litra_devices = get_connected_devices(api, None);
+            let litra_devices: Vec<Device> = get_connected_devices(&api, None).collect();
 
             if *json {
                 println!("{}", serde_json::to_string(&litra_devices).unwrap());
@@ -129,38 +130,35 @@ fn main() {
             }
         }
         Commands::On { serial_number } => {
-            let devices = get_connected_devices(api, serial_number.as_deref());
-
-            if devices.is_empty() {
-                println!("Device not found");
-                std::process::exit(exitcode::DATAERR);
-            }
-
-            let device = &devices[0];
+            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev,
+                None => {
+                    println!("Device not found");
+                    std::process::exit(exitcode::DATAERR);
+                }
+            };
 
             turn_on(&device.device_handle, &device.device_type);
         }
         Commands::Off { serial_number } => {
-            let devices = get_connected_devices(api, serial_number.as_deref());
-
-            if devices.is_empty() {
-                println!("Device not found");
-                std::process::exit(exitcode::DATAERR);
-            }
-
-            let device = &devices[0];
+            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev,
+                None => {
+                    println!("Device not found");
+                    std::process::exit(exitcode::DATAERR);
+                }
+            };
 
             turn_off(&device.device_handle, &device.device_type);
         }
         Commands::Toggle { serial_number } => {
-            let devices = get_connected_devices(api, serial_number.as_deref());
-
-            if devices.is_empty() {
-                println!("Device not found");
-                std::process::exit(exitcode::DATAERR);
-            }
-
-            let device = &devices[0];
+            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev,
+                None => {
+                    println!("Device not found");
+                    std::process::exit(exitcode::DATAERR);
+                }
+            };
 
             if device.is_on {
                 turn_off(&device.device_handle, &device.device_type);
@@ -173,14 +171,13 @@ fn main() {
             value,
             percentage,
         } => {
-            let devices = get_connected_devices(api, serial_number.as_deref());
-
-            if devices.is_empty() {
-                println!("Device not found");
-                std::process::exit(exitcode::DATAERR);
-            }
-
-            let device = &devices[0];
+            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev,
+                None => {
+                    println!("Device not found");
+                    std::process::exit(exitcode::DATAERR);
+                }
+            };
 
             match (value, percentage) {
                 (Some(_), None) => {
@@ -222,14 +219,13 @@ fn main() {
             serial_number,
             value,
         } => {
-            let devices = get_connected_devices(api, serial_number.as_deref());
-
-            if devices.is_empty() {
-                println!("Device not found");
-                std::process::exit(exitcode::DATAERR);
-            }
-
-            let device = &devices[0];
+            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev,
+                None => {
+                    println!("Device not found");
+                    std::process::exit(exitcode::DATAERR);
+                }
+            };
 
             let allowed_temperatures_in_kelvin = multiples_within_range(
                 100,

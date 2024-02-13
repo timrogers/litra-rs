@@ -68,16 +68,18 @@ fn get_maximum_brightness_in_lumen(device_type: &DeviceType) -> u16 {
 const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
 const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
-pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<Device> {
-    let hid_devices = api.device_list();
-    let litra_devices = hid_devices
-        .into_iter()
+pub fn get_connected_devices<'a>(
+    api: &'a HidApi,
+    serial_number: Option<&'a str>,
+) -> impl Iterator<Item = Device> + 'a {
+    let litra_devices = api
+        .device_list()
         .filter(|device| {
             device.vendor_id() == VENDOR_ID
                 && PRODUCT_IDS.contains(&device.product_id())
                 && device.usage_page() == USAGE_PAGE
         })
-        .filter(|device| {
+        .filter(move |device| {
             serial_number.is_none()
                 || serial_number.as_ref().is_some_and(|expected| {
                     device
@@ -115,7 +117,6 @@ pub fn get_connected_devices(api: HidApi, serial_number: Option<&str>) -> Vec<De
                 maximum_temperature_in_kelvin: MAXIMUM_TEMPERATURE_IN_KELVIN,
             }
         })
-        .collect()
 }
 
 fn generate_is_on_bytes(device_type: &DeviceType) -> [u8; 20] {
