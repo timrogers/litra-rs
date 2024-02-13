@@ -3,6 +3,7 @@ use litra::{
     get_connected_devices, set_brightness_in_lumen, set_temperature_in_kelvin, turn_off, turn_on,
     Device,
 };
+use std::process::ExitCode;
 
 /// Control your USB-connected Logitech Litra lights from the command line
 #[derive(Debug, Parser)]
@@ -96,7 +97,7 @@ fn multiples_within_range(multiples_of: u16, start_range: u16, end_range: u16) -
         .collect()
 }
 
-fn main() {
+fn main() -> ExitCode {
     let args = Cli::parse();
     let api = hidapi::HidApi::new().unwrap();
 
@@ -128,35 +129,38 @@ fn main() {
                     println!("No devices found");
                 }
             }
+            ExitCode::SUCCESS
         }
         Commands::On { serial_number } => {
             let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
                 Some(dev) => dev,
                 None => {
                     println!("Device not found");
-                    std::process::exit(exitcode::DATAERR);
+                    return ExitCode::FAILURE;
                 }
             };
 
             turn_on(&device.device_handle, &device.device_type);
+            ExitCode::SUCCESS
         }
         Commands::Off { serial_number } => {
             let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
                 Some(dev) => dev,
                 None => {
                     println!("Device not found");
-                    std::process::exit(exitcode::DATAERR);
+                    return ExitCode::FAILURE;
                 }
             };
 
             turn_off(&device.device_handle, &device.device_type);
+            ExitCode::SUCCESS
         }
         Commands::Toggle { serial_number } => {
             let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
                 Some(dev) => dev,
                 None => {
                     println!("Device not found");
-                    std::process::exit(exitcode::DATAERR);
+                    return ExitCode::FAILURE;
                 }
             };
 
@@ -165,6 +169,7 @@ fn main() {
             } else {
                 turn_on(&device.device_handle, &device.device_type);
             }
+            ExitCode::SUCCESS
         }
         Commands::Brightness {
             serial_number,
@@ -175,7 +180,7 @@ fn main() {
                 Some(dev) => dev,
                 None => {
                     println!("Device not found");
-                    std::process::exit(exitcode::DATAERR);
+                    return ExitCode::FAILURE;
                 }
             };
 
@@ -190,7 +195,7 @@ fn main() {
                             "Brightness must be set to a value between {} lm and {} lm",
                             device.minimum_brightness_in_lumen, device.maximum_brightness_in_lumen
                         );
-                        std::process::exit(exitcode::DATAERR);
+                        return ExitCode::FAILURE;
                     }
 
                     set_brightness_in_lumen(
@@ -214,6 +219,7 @@ fn main() {
                 }
                 _ => unreachable!(),
             }
+            ExitCode::SUCCESS
         }
         Commands::Temperature {
             serial_number,
@@ -223,7 +229,7 @@ fn main() {
                 Some(dev) => dev,
                 None => {
                     println!("Device not found");
-                    std::process::exit(exitcode::DATAERR);
+                    return ExitCode::FAILURE;
                 }
             };
 
@@ -238,10 +244,11 @@ fn main() {
                     "Temperature must be set to a multiple of 100 between {} K and {} K",
                     device.minimum_temperature_in_kelvin, device.maximum_temperature_in_kelvin
                 );
-                std::process::exit(exitcode::DATAERR);
+                return ExitCode::FAILURE;
             }
 
             set_temperature_in_kelvin(&device.device_handle, &device.device_type, *value);
+            ExitCode::SUCCESS
         }
-    };
+    }
 }
