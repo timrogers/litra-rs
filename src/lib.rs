@@ -1,14 +1,11 @@
-use hidapi::{HidApi, HidDevice};
-use serde::Serialize;
+use hidapi::{DeviceInfo, HidApi, HidDevice, HidResult};
+use std::convert::TryFrom;
 use std::fmt;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DeviceType {
-    #[serde(rename = "Litra Glow")]
     LitraGlow,
-    #[serde(rename = "Litra Beam")]
     LitraBeam,
-    #[serde(rename = "Litra Beam LX")]
     LitraBeamLX,
 }
 
@@ -22,46 +19,153 @@ impl fmt::Display for DeviceType {
     }
 }
 
-#[derive(Serialize, Debug)]
-pub struct Device {
-    pub serial_number: String,
-    pub device_type: DeviceType,
-    pub is_on: bool,
-    pub brightness_in_lumen: u16,
-    pub temperature_in_kelvin: u16,
-    #[serde(skip_serializing)]
-    pub device_handle: HidDevice,
-    pub minimum_brightness_in_lumen: u16,
-    pub maximum_brightness_in_lumen: u16,
-    pub minimum_temperature_in_kelvin: u16,
-    pub maximum_temperature_in_kelvin: u16,
+#[derive(Debug, Clone, PartialEq)]
+pub enum DeviceError {
+    /// Tried to use a device that is not supported.
+    Unsupported,
+}
+
+#[derive(Debug)]
+pub struct Device<'a> {
+    device_info: &'a DeviceInfo,
+    device_type: DeviceType,
+}
+
+impl<'a> TryFrom<&'a DeviceInfo> for Device<'a> {
+    type Error = DeviceError;
+
+    fn try_from(device_info: &'a DeviceInfo) -> Result<Self, DeviceError> {
+        if device_info.vendor_id() != VENDOR_ID || device_info.usage_page() != USAGE_PAGE {
+            return Err(DeviceError::Unsupported);
+        }
+        get_device_type(device_info.product_id())
+            .map(|device_type| Device {
+                device_info,
+                device_type,
+            })
+            .ok_or(DeviceError::Unsupported)
+    }
+}
+
+impl Device<'_> {
+    pub fn serial_number(&self) -> Option<&str> {
+        self.device_info.serial_number()
+    }
+
+    pub fn device_type(&self) -> DeviceType {
+        self.device_type
+    }
+
+    pub fn open(&self, api: &HidApi) -> HidResult<DeviceHandle> {
+        self.device_info
+            .open_device(api)
+            .map(|hid_device| DeviceHandle {
+                hid_device,
+                device_type: self.device_type,
+            })
+    }
+}
+
+#[derive(Debug)]
+pub struct DeviceHandle {
+    hid_device: HidDevice,
+    device_type: DeviceType,
+}
+
+impl DeviceHandle {
+    pub fn device_type(&self) -> DeviceType {
+        self.device_type
+    }
+
+    pub fn is_enabled(&self) -> HidResult<bool> {
+        let message = generate_is_enabled_bytes(&self.device_type);
+
+        self.hid_device.write(&message)?;
+
+        let mut response_buffer = [0x00; 20];
+        let response = self.hid_device.read(&mut response_buffer[..])?;
+
+        Ok(response_buffer[..response][4] == 1)
+    }
+
+    pub fn set_enabled(&self, enabled: bool) -> HidResult<()> {
+        let message = generate_set_enabled_bytes(&self.device_type, enabled);
+
+        self.hid_device.write(&message)?;
+        Ok(())
+    }
+
+    pub fn brightness_in_lumen(&self) -> HidResult<u16> {
+        let message = generate_get_brightness_in_lumen_bytes(&self.device_type);
+
+        self.hid_device.write(&message)?;
+
+        let mut response_buffer = [0x00; 20];
+        let response = self.hid_device.read(&mut response_buffer[..])?;
+
+        Ok(response_buffer[..response][5].into())
+    }
+
+    pub fn set_brightness_in_lumen(&self, brightness_in_lumen: u16) -> HidResult<()> {
+        let message =
+            generate_set_brightness_in_lumen_bytes(&self.device_type, brightness_in_lumen);
+
+        self.hid_device.write(&message)?;
+        Ok(())
+    }
+
+    pub fn minimum_brightness_in_lumen(&self) -> u16 {
+        match self.device_type {
+            DeviceType::LitraGlow => 20,
+            DeviceType::LitraBeam | DeviceType::LitraBeamLX => 30,
+        }
+    }
+
+    pub fn maximum_brightness_in_lumen(&self) -> u16 {
+        match self.device_type {
+            DeviceType::LitraGlow => 250,
+            DeviceType::LitraBeam | DeviceType::LitraBeamLX => 400,
+        }
+    }
+
+    pub fn temperature_in_kelvin(&self) -> HidResult<u16> {
+        let message = generate_get_temperature_in_kelvin_bytes(&self.device_type);
+
+        self.hid_device.write(&message)?;
+
+        let mut response_buffer = [0x00; 20];
+        let response = self.hid_device.read(&mut response_buffer[..])?;
+        Ok(u16::from(response_buffer[..response][4]) * 256
+            + u16::from(response_buffer[..response][5]))
+    }
+
+    pub fn set_temperature_in_kelvin(&self, temperature_in_kelvin: u16) -> HidResult<()> {
+        let message =
+            generate_set_temperature_in_kelvin_bytes(&self.device_type, temperature_in_kelvin);
+
+        self.hid_device.write(&message)?;
+        Ok(())
+    }
+
+    pub fn minimum_temperature_in_kelvin(&self) -> u16 {
+        MINIMUM_TEMPERATURE_IN_KELVIN
+    }
+
+    pub fn maximum_temperature_in_kelvin(&self) -> u16 {
+        MAXIMUM_TEMPERATURE_IN_KELVIN
+    }
 }
 
 const VENDOR_ID: u16 = 0x046d;
-const PRODUCT_IDS: [u16; 4] = [0xc900, 0xc901, 0xb901, 0xc903];
 const USAGE_PAGE: u16 = 0xff43;
 
-fn get_device_type(product_id: u16) -> DeviceType {
+fn get_device_type(product_id: u16) -> Option<DeviceType> {
     match product_id {
-        0xc900 => DeviceType::LitraGlow,
-        0xc901 => DeviceType::LitraBeam,
-        0xb901 => DeviceType::LitraBeam,
-        0xc903 => DeviceType::LitraBeamLX,
-        _ => panic!("Unknown product ID"),
-    }
-}
-
-fn get_minimum_brightness_in_lumen(device_type: &DeviceType) -> u16 {
-    match device_type {
-        DeviceType::LitraGlow => 20,
-        DeviceType::LitraBeam | DeviceType::LitraBeamLX => 30,
-    }
-}
-
-fn get_maximum_brightness_in_lumen(device_type: &DeviceType) -> u16 {
-    match device_type {
-        DeviceType::LitraGlow => 250,
-        DeviceType::LitraBeam | DeviceType::LitraBeamLX => 400,
+        0xc900 => DeviceType::LitraGlow.into(),
+        0xc901 => DeviceType::LitraBeam.into(),
+        0xb901 => DeviceType::LitraBeam.into(),
+        0xc903 => DeviceType::LitraBeamLX.into(),
+        _ => None,
     }
 }
 
@@ -71,14 +175,9 @@ const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 pub fn get_connected_devices<'a>(
     api: &'a HidApi,
     serial_number: Option<&'a str>,
-) -> impl Iterator<Item = Device> + 'a {
-    let litra_devices = api
-        .device_list()
-        .filter(|device| {
-            device.vendor_id() == VENDOR_ID
-                && PRODUCT_IDS.contains(&device.product_id())
-                && device.usage_page() == USAGE_PAGE
-        })
+) -> impl Iterator<Item = Device<'a>> + 'a {
+    api.device_list()
+        .filter_map(|device_info| Device::try_from(device_info).ok())
         .filter(move |device| {
             serial_number.is_none()
                 || serial_number.as_ref().is_some_and(|expected| {
@@ -86,40 +185,10 @@ pub fn get_connected_devices<'a>(
                         .serial_number()
                         .is_some_and(|actual| &actual == expected)
                 })
-        });
-
-    litra_devices
-        .filter_map(|device| match api.open_path(device.path()) {
-            Ok(device_handle) => Some((device, device_handle)),
-            Err(err) => {
-                println!("Failed to open device {:?}: {:?}", device.path(), err);
-                None
-            }
-        })
-        .map(|(device, device_handle)| {
-            let device_type = get_device_type(device.product_id());
-            let is_on = is_on(&device_handle, &device_type);
-            let brightness_in_lumen = get_brightness_in_lumen(&device_handle, &device_type);
-            let temperature_in_kelvin = get_temperature_in_kelvin(&device_handle, &device_type);
-            let minimum_brightness_in_lumen = get_minimum_brightness_in_lumen(&device_type);
-            let maximum_brightness_in_lumen = get_maximum_brightness_in_lumen(&device_type);
-
-            Device {
-                serial_number: device.serial_number().unwrap_or("").to_string(),
-                device_type,
-                is_on,
-                brightness_in_lumen,
-                temperature_in_kelvin,
-                device_handle,
-                minimum_brightness_in_lumen,
-                maximum_brightness_in_lumen,
-                minimum_temperature_in_kelvin: MINIMUM_TEMPERATURE_IN_KELVIN,
-                maximum_temperature_in_kelvin: MAXIMUM_TEMPERATURE_IN_KELVIN,
-            }
         })
 }
 
-fn generate_is_on_bytes(device_type: &DeviceType) -> [u8; 20] {
+fn generate_is_enabled_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
         DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -130,17 +199,6 @@ fn generate_is_on_bytes(device_type: &DeviceType) -> [u8; 20] {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
     }
-}
-
-pub fn is_on(device_handle: &HidDevice, device_type: &DeviceType) -> bool {
-    let message = generate_is_on_bytes(device_type);
-
-    device_handle.write(&message).unwrap();
-
-    let mut response_buffer = [0x00; 20];
-    let response = device_handle.read(&mut response_buffer[..]).unwrap();
-
-    response_buffer[..response][4] == 1
 }
 
 fn generate_get_brightness_in_lumen_bytes(device_type: &DeviceType) -> [u8; 20] {
@@ -156,17 +214,6 @@ fn generate_get_brightness_in_lumen_bytes(device_type: &DeviceType) -> [u8; 20] 
     }
 }
 
-pub fn get_brightness_in_lumen(device_handle: &HidDevice, device_type: &DeviceType) -> u16 {
-    let message = generate_get_brightness_in_lumen_bytes(device_type);
-
-    device_handle.write(&message).unwrap();
-
-    let mut response_buffer = [0x00; 20];
-    let response = device_handle.read(&mut response_buffer[..]).unwrap();
-
-    response_buffer[..response][5].into()
-}
-
 fn generate_get_temperature_in_kelvin_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
         DeviceType::LitraGlow | DeviceType::LitraBeam => [
@@ -180,52 +227,54 @@ fn generate_get_temperature_in_kelvin_bytes(device_type: &DeviceType) -> [u8; 20
     }
 }
 
-pub fn get_temperature_in_kelvin(device_handle: &HidDevice, device_type: &DeviceType) -> u16 {
-    let message = generate_get_temperature_in_kelvin_bytes(device_type);
-
-    device_handle.write(&message).unwrap();
-
-    let mut response_buffer = [0x00; 20];
-    let response = device_handle.read(&mut response_buffer[..]).unwrap();
-    u16::from(response_buffer[..response][4]) * 256 + u16::from(response_buffer[..response][5])
-}
-
-fn generate_turn_on_bytes(device_type: &DeviceType) -> [u8; 20] {
+fn generate_set_enabled_bytes(device_type: &DeviceType, enabled: bool) -> [u8; 20] {
+    let enabled_byte = if enabled { 0x01 } else { 0x00 };
     match device_type {
         DeviceType::LitraGlow | DeviceType::LitraBeam => [
-            0x11, 0xff, 0x04, 0x1c, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x11,
+            0xff,
+            0x04,
+            0x1c,
+            enabled_byte,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
         ],
         DeviceType::LitraBeamLX => [
-            0x11, 0xff, 0x06, 0x1c, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x11,
+            0xff,
+            0x06,
+            0x1c,
+            enabled_byte,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
         ],
     }
-}
-
-pub fn turn_on(device_handle: &HidDevice, device_type: &DeviceType) {
-    let message = generate_turn_on_bytes(device_type);
-
-    device_handle.write(&message).unwrap();
-}
-
-fn generate_turn_off_bytes(device_type: &DeviceType) -> [u8; 20] {
-    match device_type {
-        DeviceType::LitraGlow | DeviceType::LitraBeam => [
-            0x11, 0xff, 0x04, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-        DeviceType::LitraBeamLX => [
-            0x11, 0xff, 0x06, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ],
-    }
-}
-
-pub fn turn_off(device_handle: &HidDevice, device_type: &DeviceType) {
-    let message = generate_turn_off_bytes(device_type);
-
-    device_handle.write(&message).unwrap();
 }
 
 fn generate_set_brightness_in_lumen_bytes(
@@ -282,16 +331,6 @@ fn generate_set_brightness_in_lumen_bytes(
     }
 }
 
-pub fn set_brightness_in_lumen(
-    device_handle: &HidDevice,
-    device_type: &DeviceType,
-    brightness_in_lumen: u16,
-) {
-    let message = generate_set_brightness_in_lumen_bytes(device_type, brightness_in_lumen);
-
-    device_handle.write(&message).unwrap();
-}
-
 fn generate_set_temperature_in_kelvin_bytes(
     device_type: &DeviceType,
     temperature_in_kelvin: u16,
@@ -344,14 +383,4 @@ fn generate_set_temperature_in_kelvin_bytes(
             0x00,
         ],
     }
-}
-
-pub fn set_temperature_in_kelvin(
-    device_handle: &HidDevice,
-    device_type: &DeviceType,
-    temperature_in_kelvin: u16,
-) {
-    let message = generate_set_temperature_in_kelvin_bytes(device_type, temperature_in_kelvin);
-
-    device_handle.write(&message).unwrap();
 }

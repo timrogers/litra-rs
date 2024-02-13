@@ -1,8 +1,6 @@
 use clap::{ArgGroup, Parser, Subcommand};
-use litra::{
-    get_connected_devices, set_brightness_in_lumen, set_temperature_in_kelvin, turn_off, turn_on,
-    Device,
-};
+use litra::get_connected_devices;
+use serde::Serialize;
 use std::process::ExitCode;
 
 /// Control your USB-connected Logitech Litra lights from the command line
@@ -97,78 +95,113 @@ fn multiples_within_range(multiples_of: u16, start_range: u16, end_range: u16) -
         .collect()
 }
 
+#[derive(Serialize, Debug)]
+pub struct DeviceInfo {
+    pub serial_number: String,
+    pub device_type: String,
+    pub is_on: bool,
+    pub brightness_in_lumen: u16,
+    pub temperature_in_kelvin: u16,
+    pub minimum_brightness_in_lumen: u16,
+    pub maximum_brightness_in_lumen: u16,
+    pub minimum_temperature_in_kelvin: u16,
+    pub maximum_temperature_in_kelvin: u16,
+}
+
 fn main() -> ExitCode {
     let args = Cli::parse();
     let api = hidapi::HidApi::new().unwrap();
 
     match &args.command {
         Commands::Devices { json } => {
-            let litra_devices: Vec<Device> = get_connected_devices(&api, None).collect();
+            let litra_devices: Vec<DeviceInfo> = get_connected_devices(&api, None)
+                .filter_map(|device| {
+                    let device_handle = device.open(&api).ok()?;
+                    Some(DeviceInfo {
+                        serial_number: device.serial_number().unwrap_or("").to_string(),
+                        device_type: device.device_type().to_string(),
+                        is_on: device_handle.is_enabled().ok()?,
+                        brightness_in_lumen: device_handle.brightness_in_lumen().ok()?,
+                        temperature_in_kelvin: device_handle.temperature_in_kelvin().ok()?,
+                        minimum_brightness_in_lumen: device_handle.minimum_brightness_in_lumen(),
+                        maximum_brightness_in_lumen: device_handle.maximum_brightness_in_lumen(),
+                        minimum_temperature_in_kelvin: device_handle
+                            .minimum_temperature_in_kelvin(),
+                        maximum_temperature_in_kelvin: device_handle
+                            .maximum_temperature_in_kelvin(),
+                    })
+                })
+                .collect();
 
             if *json {
                 println!("{}", serde_json::to_string(&litra_devices).unwrap());
             } else {
-                for device in &litra_devices {
+                for device_info in &litra_devices {
                     println!(
                         "- {} ({}): {} {}",
-                        device.device_type,
-                        device.serial_number,
-                        get_is_on_text(device.is_on),
-                        get_is_on_emoji(device.is_on)
+                        device_info.device_type,
+                        device_info.serial_number,
+                        get_is_on_text(device_info.is_on),
+                        get_is_on_emoji(device_info.is_on)
                     );
 
-                    println!("  - Brightness: {} lm", device.brightness_in_lumen,);
-                    println!("    - Minimum: {} lm", device.minimum_brightness_in_lumen);
-                    println!("    - Maximum: {} lm", device.maximum_brightness_in_lumen);
-                    println!("  - Temperature: {} K", device.temperature_in_kelvin);
-                    println!("    - Minimum: {} K", device.minimum_temperature_in_kelvin);
-                    println!("    - Maximum: {} K", device.maximum_temperature_in_kelvin);
-                }
-
-                if litra_devices.is_empty() {
-                    println!("No devices found");
+                    println!("  - Brightness: {} lm", device_info.brightness_in_lumen);
+                    println!(
+                        "    - Minimum: {} lm",
+                        device_info.minimum_brightness_in_lumen
+                    );
+                    println!(
+                        "    - Maximum: {} lm",
+                        device_info.maximum_brightness_in_lumen
+                    );
+                    println!("  - Temperature: {} K", device_info.temperature_in_kelvin);
+                    println!(
+                        "    - Minimum: {} K",
+                        device_info.minimum_temperature_in_kelvin
+                    );
+                    println!(
+                        "    - Maximum: {} K",
+                        device_info.maximum_temperature_in_kelvin
+                    );
                 }
             }
             ExitCode::SUCCESS
         }
         Commands::On { serial_number } => {
-            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev,
+            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev.open(&api).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
                 }
             };
 
-            turn_on(&device.device_handle, &device.device_type);
+            device_handle.set_enabled(true).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Off { serial_number } => {
-            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev,
+            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev.open(&api).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
                 }
             };
 
-            turn_off(&device.device_handle, &device.device_type);
+            device_handle.set_enabled(false).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Toggle { serial_number } => {
-            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev,
+            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev.open(&api).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
                 }
             };
 
-            if device.is_on {
-                turn_off(&device.device_handle, &device.device_type);
-            } else {
-                turn_on(&device.device_handle, &device.device_type);
-            }
+            let is_enabled = device_handle.is_enabled().unwrap();
+            device_handle.set_enabled(!is_enabled).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Brightness {
@@ -176,8 +209,8 @@ fn main() -> ExitCode {
             value,
             percentage,
         } => {
-            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev,
+            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev.open(&api).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
@@ -188,34 +221,33 @@ fn main() -> ExitCode {
                 (Some(_), None) => {
                     let brightness_in_lumen = value.unwrap();
 
-                    if brightness_in_lumen < device.minimum_brightness_in_lumen
-                        || brightness_in_lumen > device.maximum_brightness_in_lumen
+                    if brightness_in_lumen < device_handle.minimum_brightness_in_lumen()
+                        || brightness_in_lumen > device_handle.maximum_brightness_in_lumen()
                     {
                         println!(
                             "Brightness must be set to a value between {} lm and {} lm",
-                            device.minimum_brightness_in_lumen, device.maximum_brightness_in_lumen
+                            device_handle.minimum_brightness_in_lumen(),
+                            device_handle.maximum_brightness_in_lumen()
                         );
                         return ExitCode::FAILURE;
                     }
 
-                    set_brightness_in_lumen(
-                        &device.device_handle,
-                        &device.device_type,
-                        brightness_in_lumen,
-                    );
+                    device_handle
+                        .set_brightness_in_lumen(brightness_in_lumen)
+                        .unwrap();
                 }
                 (None, Some(_)) => {
                     let brightness_in_lumen = percentage_within_range(
                         percentage.unwrap().into(),
-                        device.minimum_brightness_in_lumen.into(),
-                        device.maximum_brightness_in_lumen.into(),
-                    );
+                        device_handle.minimum_brightness_in_lumen().into(),
+                        device_handle.maximum_brightness_in_lumen().into(),
+                    )
+                    .try_into()
+                    .unwrap();
 
-                    set_brightness_in_lumen(
-                        &device.device_handle,
-                        &device.device_type,
-                        brightness_in_lumen.try_into().unwrap(),
-                    );
+                    device_handle
+                        .set_brightness_in_lumen(brightness_in_lumen)
+                        .unwrap();
                 }
                 _ => unreachable!(),
             }
@@ -225,8 +257,8 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => {
-            let device = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev,
+            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
+                Some(dev) => dev.open(&api).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
@@ -235,19 +267,20 @@ fn main() -> ExitCode {
 
             let allowed_temperatures_in_kelvin = multiples_within_range(
                 100,
-                device.minimum_temperature_in_kelvin,
-                device.maximum_temperature_in_kelvin,
+                device_handle.minimum_temperature_in_kelvin(),
+                device_handle.maximum_temperature_in_kelvin(),
             );
 
             if !allowed_temperatures_in_kelvin.contains(value) {
                 println!(
                     "Temperature must be set to a multiple of 100 between {} K and {} K",
-                    device.minimum_temperature_in_kelvin, device.maximum_temperature_in_kelvin
+                    device_handle.minimum_temperature_in_kelvin(),
+                    device_handle.maximum_temperature_in_kelvin()
                 );
                 return ExitCode::FAILURE;
             }
 
-            set_temperature_in_kelvin(&device.device_handle, &device.device_type, *value);
+            device_handle.set_temperature_in_kelvin(*value).unwrap();
             ExitCode::SUCCESS
         }
     }
