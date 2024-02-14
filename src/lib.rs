@@ -1,4 +1,24 @@
+//! Library to query and control your Logitech Litra lights.
+//!
+//! # Usage
+//!
+//! ```
+//! use hidapi::HidApi;
+//! use litra::get_connected_devices;
+//!
+//! let api = HidApi::new().expect("Failed to initialize hidapi.");
+//! for device in get_connected_devices(&api, None) {
+//!     println!("Device {:?}", device.device_type());
+//!     if let Ok(handle) = device.open(&api) {
+//!         println!("| - Enabled: {}", handle.is_enabled()
+//!             .map(|enabled| if enabled { "yes" } else { "no" })
+//!             .unwrap_or("unknown"));
+//!     }
+//! }
+//! ```
+
 #![warn(unsafe_code)]
+#![warn(missing_docs)]
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 #![deny(rust_2018_idioms)]
 #![deny(rust_2021_compatibility)]
@@ -16,10 +36,20 @@ use hidapi::{DeviceInfo, HidApi, HidDevice, HidResult};
 use std::convert::TryFrom;
 use std::fmt;
 
+/// The model of the device.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DeviceType {
+    /// Logitech [Litra Glow][glow] streaming light with TrueSoft.
+    ///
+    /// [glow]: https://www.logitech.com/products/lighting/litra-glow.html
     LitraGlow,
+    /// Logitech [Litra Beam][beam] LED streaming key light with TrueSoft.
+    ///
+    /// [beam]: https://www.logitechg.com/products/cameras-lighting/litra-beam-streaming-light.html
     LitraBeam,
+    /// Logitech [Litra Beam LX][beamlx] dual-sided RGB streaming key light.
+    ///
+    /// [beamlx]: https://www.logitechg.com/products/cameras-lighting/litra-beam-lx-led-light.html
     LitraBeamLX,
 }
 
@@ -33,12 +63,14 @@ impl fmt::Display for DeviceType {
     }
 }
 
+/// A device-relatred error.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DeviceError {
     /// Tried to use a device that is not supported.
     Unsupported,
 }
 
+/// A device that can be used.
 #[derive(Debug)]
 pub struct Device<'a> {
     device_info: &'a DeviceInfo,
@@ -62,16 +94,20 @@ impl<'a> TryFrom<&'a DeviceInfo> for Device<'a> {
 }
 
 impl Device<'_> {
+    /// The serial number of the device (if available).
     #[must_use]
     pub fn serial_number(&self) -> Option<&str> {
         self.device_info.serial_number()
     }
 
+    /// The model of the device.
     #[must_use]
     pub fn device_type(&self) -> DeviceType {
         self.device_type
     }
 
+    /// Opens the device and returns a [`DeviceHandle`] that can be used for getting and setting the
+    /// device status.
     pub fn open(&self, api: &HidApi) -> HidResult<DeviceHandle> {
         self.device_info
             .open_device(api)
@@ -82,6 +118,7 @@ impl Device<'_> {
     }
 }
 
+/// The handle of an opened device that can be used for getting and setting the device status.
 #[derive(Debug)]
 pub struct DeviceHandle {
     hid_device: HidDevice,
@@ -89,11 +126,13 @@ pub struct DeviceHandle {
 }
 
 impl DeviceHandle {
+    /// The model of the device.
     #[must_use]
     pub fn device_type(&self) -> DeviceType {
         self.device_type
     }
 
+    /// Queries the current power status of the device. Returns `true` if the device is currently on.
     pub fn is_enabled(&self) -> HidResult<bool> {
         let message = generate_is_enabled_bytes(&self.device_type);
 
@@ -105,6 +144,8 @@ impl DeviceHandle {
         Ok(response_buffer[..response][4] == 1)
     }
 
+    /// Sets the power status of the device. Turns the device on if `true` is passed and turns it
+    /// of on `false`.
     pub fn set_enabled(&self, enabled: bool) -> HidResult<()> {
         let message = generate_set_enabled_bytes(&self.device_type, enabled);
 
@@ -112,6 +153,7 @@ impl DeviceHandle {
         Ok(())
     }
 
+    /// Queries the device's current brightness in Lumen.
     pub fn brightness_in_lumen(&self) -> HidResult<u16> {
         let message = generate_get_brightness_in_lumen_bytes(&self.device_type);
 
@@ -123,6 +165,7 @@ impl DeviceHandle {
         Ok(response_buffer[..response][5].into())
     }
 
+    /// Sets the device's brightness in Lumen.
     pub fn set_brightness_in_lumen(&self, brightness_in_lumen: u16) -> HidResult<()> {
         let message =
             generate_set_brightness_in_lumen_bytes(&self.device_type, brightness_in_lumen);
@@ -131,6 +174,7 @@ impl DeviceHandle {
         Ok(())
     }
 
+    /// Returns the minimum brightness supported by the device in Lumen.
     #[must_use]
     pub fn minimum_brightness_in_lumen(&self) -> u16 {
         match self.device_type {
@@ -139,6 +183,7 @@ impl DeviceHandle {
         }
     }
 
+    /// Returns the maximum brightness supported by the device in Lumen.
     #[must_use]
     pub fn maximum_brightness_in_lumen(&self) -> u16 {
         match self.device_type {
@@ -147,6 +192,7 @@ impl DeviceHandle {
         }
     }
 
+    /// Queries the device's current color temperature in Kelvin.
     pub fn temperature_in_kelvin(&self) -> HidResult<u16> {
         let message = generate_get_temperature_in_kelvin_bytes(&self.device_type);
 
@@ -158,6 +204,7 @@ impl DeviceHandle {
             + u16::from(response_buffer[..response][5]))
     }
 
+    /// Sets the device's color temperature in Kelvin.
     pub fn set_temperature_in_kelvin(&self, temperature_in_kelvin: u16) -> HidResult<()> {
         let message =
             generate_set_temperature_in_kelvin_bytes(&self.device_type, temperature_in_kelvin);
@@ -166,11 +213,13 @@ impl DeviceHandle {
         Ok(())
     }
 
+    /// Returns the minimum color temperature supported by the device in Kelvin.
     #[must_use]
     pub fn minimum_temperature_in_kelvin(&self) -> u16 {
         MINIMUM_TEMPERATURE_IN_KELVIN
     }
 
+    /// Returns the maximum color temperature supported by the device in Kelvin.
     #[must_use]
     pub fn maximum_temperature_in_kelvin(&self) -> u16 {
         MAXIMUM_TEMPERATURE_IN_KELVIN
@@ -193,6 +242,7 @@ fn device_type_from_product_id(product_id: u16) -> Option<DeviceType> {
 const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
 const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
+/// Returns an [`Iterator`] of connected devices supported by this library.
 pub fn get_connected_devices<'a>(
     api: &'a HidApi,
     serial_number: Option<&'a str>,
