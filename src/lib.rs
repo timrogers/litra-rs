@@ -38,7 +38,7 @@ impl<'a> TryFrom<&'a DeviceInfo> for Device<'a> {
         if device_info.vendor_id() != VENDOR_ID || device_info.usage_page() != USAGE_PAGE {
             return Err(DeviceError::Unsupported);
         }
-        get_device_type(device_info.product_id())
+        device_type_from_product_id(device_info.product_id())
             .map(|device_type| Device {
                 device_info,
                 device_type,
@@ -159,7 +159,7 @@ impl DeviceHandle {
 const VENDOR_ID: u16 = 0x046d;
 const USAGE_PAGE: u16 = 0xff43;
 
-fn get_device_type(product_id: u16) -> Option<DeviceType> {
+fn device_type_from_product_id(product_id: u16) -> Option<DeviceType> {
     match product_id {
         0xc900 => DeviceType::LitraGlow.into(),
         0xc901 => DeviceType::LitraBeam.into(),
