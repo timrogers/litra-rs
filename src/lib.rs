@@ -7,7 +7,7 @@
 //! use litra::get_connected_devices;
 //!
 //! let api = HidApi::new().expect("Failed to initialize hidapi.");
-//! for device in get_connected_devices(&api, None) {
+//! for device in get_connected_devices(&api) {
 //!     println!("Device {:?}", device.device_type());
 //!     if let Ok(handle) = device.open(&api) {
 //!         println!("| - Enabled: {}", handle.is_enabled()
@@ -243,20 +243,9 @@ const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
 const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
 /// Returns an [`Iterator`] of connected devices supported by this library.
-pub fn get_connected_devices<'a>(
-    api: &'a HidApi,
-    serial_number: Option<&'a str>,
-) -> impl Iterator<Item = Device<'a>> + 'a {
+pub fn get_connected_devices(api: &HidApi) -> impl Iterator<Item = Device<'_>> {
     api.device_list()
         .filter_map(|device_info| Device::try_from(device_info).ok())
-        .filter(move |device| {
-            serial_number.is_none()
-                || serial_number.as_ref().is_some_and(|expected| {
-                    device
-                        .serial_number()
-                        .is_some_and(|actual| &actual == expected)
-                })
-        })
 }
 
 fn generate_is_enabled_bytes(device_type: &DeviceType) -> [u8; 20] {

@@ -1,5 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand};
-use litra::get_connected_devices;
+use litra::{get_connected_devices, Device};
 use serde::Serialize;
 use std::process::ExitCode;
 
@@ -95,6 +95,20 @@ fn multiples_within_range(multiples_of: u16, start_range: u16, end_range: u16) -
         .collect()
 }
 
+fn get_devices_by_serial_no<'a>(
+    api: &'a hidapi::HidApi,
+    serial_number: Option<&'a str>,
+) -> impl Iterator<Item = Device<'a>> + 'a {
+    get_connected_devices(api).filter(move |device| {
+        serial_number.is_none()
+            || serial_number.as_ref().is_some_and(|expected| {
+                device
+                    .serial_number()
+                    .is_some_and(|actual| &actual == expected)
+            })
+    })
+}
+
 #[derive(Serialize, Debug)]
 pub struct DeviceInfo {
     pub serial_number: String,
@@ -114,7 +128,7 @@ fn main() -> ExitCode {
 
     match &args.command {
         Commands::Devices { json } => {
-            let litra_devices: Vec<DeviceInfo> = get_connected_devices(&api, None)
+            let litra_devices: Vec<DeviceInfo> = get_connected_devices(&api)
                 .filter_map(|device| {
                     let device_handle = device.open(&api).ok()?;
                     Some(DeviceInfo {
@@ -168,37 +182,40 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Commands::On { serial_number } => {
-            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev.open(&api).unwrap(),
-                None => {
-                    println!("Device not found");
-                    return ExitCode::FAILURE;
-                }
-            };
+            let device_handle =
+                match get_devices_by_serial_no(&api, serial_number.as_deref()).next() {
+                    Some(dev) => dev.open(&api).unwrap(),
+                    None => {
+                        println!("Device not found");
+                        return ExitCode::FAILURE;
+                    }
+                };
 
             device_handle.set_enabled(true).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Off { serial_number } => {
-            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev.open(&api).unwrap(),
-                None => {
-                    println!("Device not found");
-                    return ExitCode::FAILURE;
-                }
-            };
+            let device_handle =
+                match get_devices_by_serial_no(&api, serial_number.as_deref()).next() {
+                    Some(dev) => dev.open(&api).unwrap(),
+                    None => {
+                        println!("Device not found");
+                        return ExitCode::FAILURE;
+                    }
+                };
 
             device_handle.set_enabled(false).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Toggle { serial_number } => {
-            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev.open(&api).unwrap(),
-                None => {
-                    println!("Device not found");
-                    return ExitCode::FAILURE;
-                }
-            };
+            let device_handle =
+                match get_devices_by_serial_no(&api, serial_number.as_deref()).next() {
+                    Some(dev) => dev.open(&api).unwrap(),
+                    None => {
+                        println!("Device not found");
+                        return ExitCode::FAILURE;
+                    }
+                };
 
             let is_enabled = device_handle.is_enabled().unwrap();
             device_handle.set_enabled(!is_enabled).unwrap();
@@ -209,13 +226,14 @@ fn main() -> ExitCode {
             value,
             percentage,
         } => {
-            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev.open(&api).unwrap(),
-                None => {
-                    println!("Device not found");
-                    return ExitCode::FAILURE;
-                }
-            };
+            let device_handle =
+                match get_devices_by_serial_no(&api, serial_number.as_deref()).next() {
+                    Some(dev) => dev.open(&api).unwrap(),
+                    None => {
+                        println!("Device not found");
+                        return ExitCode::FAILURE;
+                    }
+                };
 
             match (value, percentage) {
                 (Some(_), None) => {
@@ -257,13 +275,14 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => {
-            let device_handle = match get_connected_devices(&api, serial_number.as_deref()).next() {
-                Some(dev) => dev.open(&api).unwrap(),
-                None => {
-                    println!("Device not found");
-                    return ExitCode::FAILURE;
-                }
-            };
+            let device_handle =
+                match get_devices_by_serial_no(&api, serial_number.as_deref()).next() {
+                    Some(dev) => dev.open(&api).unwrap(),
+                    None => {
+                        println!("Device not found");
+                        return ExitCode::FAILURE;
+                    }
+                };
 
             let allowed_temperatures_in_kelvin = multiples_within_range(
                 100,
