@@ -1,3 +1,17 @@
+#![warn(unsafe_code)]
+#![cfg_attr(not(debug_assertions), deny(warnings))]
+#![deny(rust_2018_idioms)]
+#![deny(rust_2021_compatibility)]
+#![deny(missing_debug_implementations)]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![deny(clippy::all)]
+#![deny(clippy::explicit_deref_methods)]
+#![deny(clippy::explicit_into_iter_loop)]
+#![deny(clippy::explicit_iter_loop)]
+#![deny(clippy::must_use_candidate)]
+#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
+#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
+
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidResult};
 use std::convert::TryFrom;
 use std::fmt;
@@ -10,7 +24,7 @@ pub enum DeviceType {
 }
 
 impl fmt::Display for DeviceType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DeviceType::LitraGlow => write!(f, "Litra Glow"),
             DeviceType::LitraBeam => write!(f, "Litra Beam"),
@@ -48,10 +62,12 @@ impl<'a> TryFrom<&'a DeviceInfo> for Device<'a> {
 }
 
 impl Device<'_> {
+    #[must_use]
     pub fn serial_number(&self) -> Option<&str> {
         self.device_info.serial_number()
     }
 
+    #[must_use]
     pub fn device_type(&self) -> DeviceType {
         self.device_type
     }
@@ -73,6 +89,7 @@ pub struct DeviceHandle {
 }
 
 impl DeviceHandle {
+    #[must_use]
     pub fn device_type(&self) -> DeviceType {
         self.device_type
     }
@@ -114,6 +131,7 @@ impl DeviceHandle {
         Ok(())
     }
 
+    #[must_use]
     pub fn minimum_brightness_in_lumen(&self) -> u16 {
         match self.device_type {
             DeviceType::LitraGlow => 20,
@@ -121,6 +139,7 @@ impl DeviceHandle {
         }
     }
 
+    #[must_use]
     pub fn maximum_brightness_in_lumen(&self) -> u16 {
         match self.device_type {
             DeviceType::LitraGlow => 250,
@@ -147,10 +166,12 @@ impl DeviceHandle {
         Ok(())
     }
 
+    #[must_use]
     pub fn minimum_temperature_in_kelvin(&self) -> u16 {
         MINIMUM_TEMPERATURE_IN_KELVIN
     }
 
+    #[must_use]
     pub fn maximum_temperature_in_kelvin(&self) -> u16 {
         MAXIMUM_TEMPERATURE_IN_KELVIN
     }
