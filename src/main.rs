@@ -186,8 +186,7 @@ fn main() -> ExitCode {
         Commands::On { serial_number } => {
             let device_handle = match context
                 .get_connected_devices()
-                .filter(check_serial_number_if_some(serial_number.as_deref()))
-                .next()
+                .find(check_serial_number_if_some(serial_number.as_deref()))
             {
                 Some(dev) => dev.open(&context).unwrap(),
                 None => {
@@ -202,8 +201,7 @@ fn main() -> ExitCode {
         Commands::Off { serial_number } => {
             let device_handle = match context
                 .get_connected_devices()
-                .filter(check_serial_number_if_some(serial_number.as_deref()))
-                .next()
+                .find(check_serial_number_if_some(serial_number.as_deref()))
             {
                 Some(dev) => dev.open(&context).unwrap(),
                 None => {
@@ -218,8 +216,7 @@ fn main() -> ExitCode {
         Commands::Toggle { serial_number } => {
             let device_handle = match context
                 .get_connected_devices()
-                .filter(check_serial_number_if_some(serial_number.as_deref()))
-                .next()
+                .find(check_serial_number_if_some(serial_number.as_deref()))
             {
                 Some(dev) => dev.open(&context).unwrap(),
                 None => {
@@ -239,8 +236,7 @@ fn main() -> ExitCode {
         } => {
             let device_handle = match context
                 .get_connected_devices()
-                .filter(check_serial_number_if_some(serial_number.as_deref()))
-                .next()
+                .find(check_serial_number_if_some(serial_number.as_deref()))
             {
                 Some(dev) => dev.open(&context).unwrap(),
                 None => {
@@ -291,8 +287,7 @@ fn main() -> ExitCode {
         } => {
             let device_handle = match context
                 .get_connected_devices()
-                .filter(check_serial_number_if_some(serial_number.as_deref()))
-                .next()
+                .find(check_serial_number_if_some(serial_number.as_deref()))
             {
                 Some(dev) => dev.open(&context).unwrap(),
                 None => {
