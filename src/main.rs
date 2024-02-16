@@ -103,6 +103,7 @@ fn get_devices_by_serial_no<'a>(
         serial_number.is_none()
             || serial_number.as_ref().is_some_and(|expected| {
                 device
+                    .device_info()
                     .serial_number()
                     .is_some_and(|actual| &actual == expected)
             })
@@ -132,7 +133,11 @@ fn main() -> ExitCode {
                 .filter_map(|device| {
                     let device_handle = device.open(&api).ok()?;
                     Some(DeviceInfo {
-                        serial_number: device.serial_number().unwrap_or("").to_string(),
+                        serial_number: device
+                            .device_info()
+                            .serial_number()
+                            .unwrap_or("")
+                            .to_string(),
                         device_type: device.device_type().to_string(),
                         is_on: device_handle.is_enabled().ok()?,
                         brightness_in_lumen: device_handle.brightness_in_lumen().ok()?,

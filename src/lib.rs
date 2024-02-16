@@ -94,10 +94,10 @@ impl<'a> TryFrom<&'a DeviceInfo> for Device<'a> {
 }
 
 impl Device<'_> {
-    /// The serial number of the device (if available).
+    /// The model of the device.
     #[must_use]
-    pub fn serial_number(&self) -> Option<&str> {
-        self.device_info.serial_number()
+    pub fn device_info(&self) -> &DeviceInfo {
+        self.device_info
     }
 
     /// The model of the device.
