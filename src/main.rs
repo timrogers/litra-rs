@@ -1,5 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand};
-use litra::{get_connected_devices, Device};
+use litra::{Device, Litra};
 use serde::Serialize;
 use std::process::ExitCode;
 
@@ -121,13 +121,14 @@ pub struct DeviceInfo {
 
 fn main() -> ExitCode {
     let args = Cli::parse();
-    let api = hidapi::HidApi::new().unwrap();
+    let context = Litra::new().unwrap();
 
     match &args.command {
         Commands::Devices { json } => {
-            let litra_devices: Vec<DeviceInfo> = get_connected_devices(&api)
+            let litra_devices: Vec<DeviceInfo> = context
+                .get_connected_devices()
                 .filter_map(|device| {
-                    let device_handle = device.open(&api).ok()?;
+                    let device_handle = device.open(&context).ok()?;
                     Some(DeviceInfo {
                         serial_number: device
                             .device_info()
@@ -183,11 +184,12 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Commands::On { serial_number } => {
-            let device_handle = match get_connected_devices(&api)
+            let device_handle = match context
+                .get_connected_devices()
                 .filter(check_serial_number_if_some(serial_number.as_deref()))
                 .next()
             {
-                Some(dev) => dev.open(&api).unwrap(),
+                Some(dev) => dev.open(&context).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
@@ -198,11 +200,12 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Commands::Off { serial_number } => {
-            let device_handle = match get_connected_devices(&api)
+            let device_handle = match context
+                .get_connected_devices()
                 .filter(check_serial_number_if_some(serial_number.as_deref()))
                 .next()
             {
-                Some(dev) => dev.open(&api).unwrap(),
+                Some(dev) => dev.open(&context).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
@@ -213,11 +216,12 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Commands::Toggle { serial_number } => {
-            let device_handle = match get_connected_devices(&api)
+            let device_handle = match context
+                .get_connected_devices()
                 .filter(check_serial_number_if_some(serial_number.as_deref()))
                 .next()
             {
-                Some(dev) => dev.open(&api).unwrap(),
+                Some(dev) => dev.open(&context).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
@@ -233,11 +237,12 @@ fn main() -> ExitCode {
             value,
             percentage,
         } => {
-            let device_handle = match get_connected_devices(&api)
+            let device_handle = match context
+                .get_connected_devices()
                 .filter(check_serial_number_if_some(serial_number.as_deref()))
                 .next()
             {
-                Some(dev) => dev.open(&api).unwrap(),
+                Some(dev) => dev.open(&context).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;
@@ -284,11 +289,12 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => {
-            let device_handle = match get_connected_devices(&api)
+            let device_handle = match context
+                .get_connected_devices()
                 .filter(check_serial_number_if_some(serial_number.as_deref()))
                 .next()
             {
-                Some(dev) => dev.open(&api).unwrap(),
+                Some(dev) => dev.open(&context).unwrap(),
                 None => {
                     println!("Device not found");
                     return ExitCode::FAILURE;

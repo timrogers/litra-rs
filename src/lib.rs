@@ -3,13 +3,12 @@
 //! # Usage
 //!
 //! ```
-//! use hidapi::HidApi;
-//! use litra::get_connected_devices;
+//! use litra::Litra;
 //!
-//! let api = HidApi::new().expect("Failed to initialize hidapi.");
-//! for device in get_connected_devices(&api) {
+//! let context = Litra::new().expect("Failed to initialize litra.");
+//! for device in context.get_connected_devices() {
 //!     println!("Device {:?}", device.device_type());
-//!     if let Ok(handle) = device.open(&api) {
+//!     if let Ok(handle) = device.open(&context) {
 //!         println!("| - Enabled: {}", handle.is_enabled()
 //!             .map(|enabled| if enabled { "yes" } else { "no" })
 //!             .unwrap_or("unknown"));
@@ -35,6 +34,37 @@
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidResult};
 use std::convert::TryFrom;
 use std::fmt;
+
+/// Litra context.
+///
+/// This can be used to list available devices.
+pub struct Litra(HidApi);
+
+impl fmt::Debug for Litra {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Litra").finish()
+    }
+}
+
+impl Litra {
+    /// Initialize a new Litra context.
+    pub fn new() -> HidResult<Self> {
+        HidApi::new().map(Litra)
+    }
+
+    /// Returns an [`Iterator`] of connected devices supported by this library.
+    pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
+        self.0
+            .device_list()
+            .filter_map(|device_info| Device::try_from(device_info).ok())
+    }
+
+    /// Retrieve the underlying hidapi context.
+    #[must_use]
+    pub fn hidapi(&self) -> &HidApi {
+        &self.0
+    }
+}
 
 /// The model of the device.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -108,9 +138,9 @@ impl Device<'_> {
 
     /// Opens the device and returns a [`DeviceHandle`] that can be used for getting and setting the
     /// device status.
-    pub fn open(&self, api: &HidApi) -> HidResult<DeviceHandle> {
+    pub fn open(&self, context: &Litra) -> HidResult<DeviceHandle> {
         self.device_info
-            .open_device(api)
+            .open_device(context.hidapi())
             .map(|hid_device| DeviceHandle {
                 hid_device,
                 device_type: self.device_type,
@@ -241,12 +271,6 @@ fn device_type_from_product_id(product_id: u16) -> Option<DeviceType> {
 
 const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
 const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
-
-/// Returns an [`Iterator`] of connected devices supported by this library.
-pub fn get_connected_devices(api: &HidApi) -> impl Iterator<Item = Device<'_>> {
-    api.device_list()
-        .filter_map(|device_info| Device::try_from(device_info).ok())
-}
 
 fn generate_is_enabled_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
