@@ -1,5 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand};
-#[cfg(feature = "autotoggle")]
+#[cfg(target_os = "linux")]
 use inotify::{EventMask, Inotify, WatchMask};
 use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
@@ -69,7 +69,7 @@ enum Commands {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
     },
-    #[cfg(feature = "autotoggle")]
+    #[cfg(target_os = "linux")]
     /// Automatically switch of the device on and off if the webcam is being used.
     AutoToggle {
         #[clap(long, short, help = "The serial number of the Logitech Litra device")]
@@ -77,7 +77,7 @@ enum Commands {
     },
 }
 
-#[cfg(feature = "autotoggle")]
+#[cfg(target_os = "linux")]
 fn get_video_device_paths() -> std::io::Result<Vec<std::path::PathBuf>> {
     Ok(std::fs::read_dir("/dev")?
         .filter_map(|entry| entry.ok())
@@ -126,7 +126,7 @@ fn check_serial_number_if_some(serial_number: Option<&str>) -> impl Fn(&Device) 
 #[derive(Debug)]
 enum CliError {
     DeviceError(DeviceError),
-    #[cfg(feature = "autotoggle")]
+    #[cfg(target_os = "linux")]
     IoError(std::io::Error),
     SerializationFailed(serde_json::Error),
     BrightnessPrecentageCalculationFailed(TryFromIntError),
@@ -137,7 +137,7 @@ impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CliError::DeviceError(error) => error.fmt(f),
-            #[cfg(feature = "autotoggle")]
+            #[cfg(target_os = "linux")]
             CliError::IoError(error) => write!(f, "Input/Output error: {}", error),
             CliError::SerializationFailed(error) => error.fmt(f),
             CliError::BrightnessPrecentageCalculationFailed(error) => {
@@ -154,7 +154,7 @@ impl From<DeviceError> for CliError {
     }
 }
 
-#[cfg(feature = "autotoggle")]
+#[cfg(target_os = "linux")]
 impl From<std::io::Error> for CliError {
     fn from(error: std::io::Error) -> Self {
         CliError::IoError(error)
@@ -309,7 +309,7 @@ fn handle_temperature_command(serial_number: Option<&str>, value: u16) -> CliRes
     Ok(())
 }
 
-#[cfg(feature = "autotoggle")]
+#[cfg(target_os = "linux")]
 fn handle_autotoggle_command(serial_number: Option<&str>) -> CliResult {
     let context = Litra::new()?;
     let device_handle = get_first_supported_device(&context, serial_number)?;
@@ -376,7 +376,7 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => handle_temperature_command(serial_number.as_deref(), *value),
-        #[cfg(feature = "autotoggle")]
+        #[cfg(target_os = "linux")]
         Commands::AutoToggle { serial_number } => {
             handle_autotoggle_command(serial_number.as_deref())
         }
