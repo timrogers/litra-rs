@@ -19,6 +19,7 @@ serde = { version = "1.0.196", features = ["derive"], optional = true }
 serde_json = { version = "1.0.113", optional = true }
 
 [features]
+default = ["cli"]
 cli = ["dep:clap", "dep:serde", "dep:serde_json"]
 
 [[bin]]
