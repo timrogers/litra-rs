@@ -37,8 +37,17 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 ### All other platforms (via binary)
 
 1. Download the [latest release](https://github.com/timrogers/litra-rs/releases/latest) for your platform. macOS, Linux and Windows devices are supported.
-1. Add the binary to `$PATH`, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
-1. Run `litra --help` to check that everything is working and see the available commands.
+2. Add the binary to `$PATH`, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
+3. Run `litra --help` to check that everything is working and see the available commands.
+
+## Permission on Linux
+
+On Linux, you can configure the permission for the Litra devices using [udev](https://www.man7.org/linux/man-pages/man7/udev.7.html).
+To allow allow all users that are part of the `video` group to access the Litra devices, copy the [`99-litra.rules`](99-litra.rules) file into `/etc/udev/rules.d`.
+Afterwards, reboot your computer or run the following commands as `root` user:
+
+    # udevadm control --reload-rules
+    # udevadm trigger
 
 ## Usage
 
