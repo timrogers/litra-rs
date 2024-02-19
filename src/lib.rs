@@ -9,8 +9,8 @@
 //! for device in context.get_connected_devices() {
 //!     println!("Device {:?}", device.device_type());
 //!     if let Ok(handle) = device.open(&context) {
-//!         println!("| - Enabled: {}", handle.is_enabled()
-//!             .map(|enabled| if enabled { "yes" } else { "no" })
+//!         println!("| - Is on: {}", handle.is_on()
+//!             .map(|on| if on { "yes" } else { "no" })
 //!             .unwrap_or("unknown"));
 //!     }
 //! }
@@ -163,8 +163,8 @@ impl DeviceHandle {
     }
 
     /// Queries the current power status of the device. Returns `true` if the device is currently on.
-    pub fn is_enabled(&self) -> HidResult<bool> {
-        let message = generate_is_enabled_bytes(&self.device_type);
+    pub fn is_on(&self) -> HidResult<bool> {
+        let message = generate_is_on_bytes(&self.device_type);
 
         self.hid_device.write(&message)?;
 
@@ -176,8 +176,8 @@ impl DeviceHandle {
 
     /// Sets the power status of the device. Turns the device on if `true` is passed and turns it
     /// of on `false`.
-    pub fn set_enabled(&self, enabled: bool) -> HidResult<()> {
-        let message = generate_set_enabled_bytes(&self.device_type, enabled);
+    pub fn set_on(&self, on: bool) -> HidResult<()> {
+        let message = generate_set_on_bytes(&self.device_type, on);
 
         self.hid_device.write(&message)?;
         Ok(())
@@ -272,7 +272,7 @@ fn device_type_from_product_id(product_id: u16) -> Option<DeviceType> {
 const MINIMUM_TEMPERATURE_IN_KELVIN: u16 = 2700;
 const MAXIMUM_TEMPERATURE_IN_KELVIN: u16 = 6500;
 
-fn generate_is_enabled_bytes(device_type: &DeviceType) -> [u8; 20] {
+fn generate_is_on_bytes(device_type: &DeviceType) -> [u8; 20] {
     match device_type {
         DeviceType::LitraGlow | DeviceType::LitraBeam => [
             0x11, 0xff, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -311,52 +311,16 @@ fn generate_get_temperature_in_kelvin_bytes(device_type: &DeviceType) -> [u8; 20
     }
 }
 
-fn generate_set_enabled_bytes(device_type: &DeviceType, enabled: bool) -> [u8; 20] {
-    let enabled_byte = if enabled { 0x01 } else { 0x00 };
+fn generate_set_on_bytes(device_type: &DeviceType, on: bool) -> [u8; 20] {
+    let on_byte = if on { 0x01 } else { 0x00 };
     match device_type {
         DeviceType::LitraGlow | DeviceType::LitraBeam => [
-            0x11,
-            0xff,
-            0x04,
-            0x1c,
-            enabled_byte,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
+            0x11, 0xff, 0x04, 0x1c, on_byte, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
         DeviceType::LitraBeamLX => [
-            0x11,
-            0xff,
-            0x06,
-            0x1c,
-            enabled_byte,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
+            0x11, 0xff, 0x06, 0x1c, on_byte, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ],
     }
 }

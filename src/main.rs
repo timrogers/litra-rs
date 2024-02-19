@@ -136,7 +136,7 @@ fn main() -> ExitCode {
                             .unwrap_or("")
                             .to_string(),
                         device_type: device.device_type().to_string(),
-                        is_on: device_handle.is_enabled().ok()?,
+                        is_on: device_handle.is_on().ok()?,
                         brightness_in_lumen: device_handle.brightness_in_lumen().ok()?,
                         temperature_in_kelvin: device_handle.temperature_in_kelvin().ok()?,
                         minimum_brightness_in_lumen: device_handle.minimum_brightness_in_lumen(),
@@ -195,7 +195,7 @@ fn main() -> ExitCode {
                 }
             };
 
-            device_handle.set_enabled(true).unwrap();
+            device_handle.set_on(true).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Off { serial_number } => {
@@ -210,7 +210,7 @@ fn main() -> ExitCode {
                 }
             };
 
-            device_handle.set_enabled(false).unwrap();
+            device_handle.set_on(false).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Toggle { serial_number } => {
@@ -225,8 +225,8 @@ fn main() -> ExitCode {
                 }
             };
 
-            let is_enabled = device_handle.is_enabled().unwrap();
-            device_handle.set_enabled(!is_enabled).unwrap();
+            let is_on = device_handle.is_on().unwrap();
+            device_handle.set_on(!is_on).unwrap();
             ExitCode::SUCCESS
         }
         Commands::Brightness {
