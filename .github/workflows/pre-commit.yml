@@ -19,7 +19,7 @@ jobs:
           components: rustc, rustfmt, clippy
 
     - name: Check out repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         fetch-depth: 2
 
