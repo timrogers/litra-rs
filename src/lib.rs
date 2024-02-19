@@ -31,8 +31,9 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
-use hidapi::{DeviceInfo, HidApi, HidDevice, HidResult};
+use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 use std::convert::TryFrom;
+use std::error::Error;
 use std::fmt;
 
 /// Litra context.
@@ -48,8 +49,8 @@ impl fmt::Debug for Litra {
 
 impl Litra {
     /// Initialize a new Litra context.
-    pub fn new() -> HidResult<Self> {
-        HidApi::new().map(Litra)
+    pub fn new() -> DeviceResult<Self> {
+        Ok(HidApi::new().map(Litra)?)
     }
 
     /// Returns an [`Iterator`] of connected devices supported by this library.
@@ -94,11 +95,51 @@ impl fmt::Display for DeviceType {
 }
 
 /// A device-relatred error.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum DeviceError {
     /// Tried to use a device that is not supported.
     Unsupported,
+    /// Tried to set an invalid brightness value.
+    InvalidBrightness(u16),
+    /// Tried to set an invalid temperature value.
+    InvalidTemperature(u16),
+    /// A [`hidapi`] operation failed.
+    HidError(HidError),
 }
+
+impl fmt::Display for DeviceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DeviceError::Unsupported => write!(f, "Device is not supported."),
+            DeviceError::InvalidBrightness(value) => {
+                write!(f, "Brightness in Lumen '{}' is not supported.", value)
+            }
+            DeviceError::InvalidTemperature(value) => {
+                write!(f, "Temperature in Kelvin '{}' is not supported.", value)
+            }
+            DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
+        }
+    }
+}
+
+impl Error for DeviceError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        if let DeviceError::HidError(error) = self {
+            Some(error)
+        } else {
+            None
+        }
+    }
+}
+
+impl From<HidError> for DeviceError {
+    fn from(error: HidError) -> Self {
+        DeviceError::HidError(error)
+    }
+}
+
+/// The [`Result`] of a Litra device operation.
+pub type DeviceResult<T> = Result<T, DeviceError>;
 
 /// A device that can be used.
 #[derive(Debug)]
@@ -138,13 +179,12 @@ impl Device<'_> {
 
     /// Opens the device and returns a [`DeviceHandle`] that can be used for getting and setting the
     /// device status.
-    pub fn open(&self, context: &Litra) -> HidResult<DeviceHandle> {
-        self.device_info
-            .open_device(context.hidapi())
-            .map(|hid_device| DeviceHandle {
-                hid_device,
-                device_type: self.device_type,
-            })
+    pub fn open(&self, context: &Litra) -> DeviceResult<DeviceHandle> {
+        let hid_device = self.device_info.open_device(context.hidapi())?;
+        Ok(DeviceHandle {
+            hid_device,
+            device_type: self.device_type,
+        })
     }
 }
 
@@ -163,7 +203,7 @@ impl DeviceHandle {
     }
 
     /// Queries the current power status of the device. Returns `true` if the device is currently on.
-    pub fn is_on(&self) -> HidResult<bool> {
+    pub fn is_on(&self) -> DeviceResult<bool> {
         let message = generate_is_on_bytes(&self.device_type);
 
         self.hid_device.write(&message)?;
@@ -176,7 +216,7 @@ impl DeviceHandle {
 
     /// Sets the power status of the device. Turns the device on if `true` is passed and turns it
     /// of on `false`.
-    pub fn set_on(&self, on: bool) -> HidResult<()> {
+    pub fn set_on(&self, on: bool) -> DeviceResult<()> {
         let message = generate_set_on_bytes(&self.device_type, on);
 
         self.hid_device.write(&message)?;
@@ -184,7 +224,7 @@ impl DeviceHandle {
     }
 
     /// Queries the device's current brightness in Lumen.
-    pub fn brightness_in_lumen(&self) -> HidResult<u16> {
+    pub fn brightness_in_lumen(&self) -> DeviceResult<u16> {
         let message = generate_get_brightness_in_lumen_bytes(&self.device_type);
 
         self.hid_device.write(&message)?;
@@ -196,7 +236,13 @@ impl DeviceHandle {
     }
 
     /// Sets the device's brightness in Lumen.
-    pub fn set_brightness_in_lumen(&self, brightness_in_lumen: u16) -> HidResult<()> {
+    pub fn set_brightness_in_lumen(&self, brightness_in_lumen: u16) -> DeviceResult<()> {
+        if brightness_in_lumen < self.minimum_brightness_in_lumen()
+            || brightness_in_lumen > self.maximum_brightness_in_lumen()
+        {
+            return Err(DeviceError::InvalidBrightness(brightness_in_lumen));
+        }
+
         let message =
             generate_set_brightness_in_lumen_bytes(&self.device_type, brightness_in_lumen);
 
@@ -223,7 +269,7 @@ impl DeviceHandle {
     }
 
     /// Queries the device's current color temperature in Kelvin.
-    pub fn temperature_in_kelvin(&self) -> HidResult<u16> {
+    pub fn temperature_in_kelvin(&self) -> DeviceResult<u16> {
         let message = generate_get_temperature_in_kelvin_bytes(&self.device_type);
 
         self.hid_device.write(&message)?;
@@ -235,7 +281,14 @@ impl DeviceHandle {
     }
 
     /// Sets the device's color temperature in Kelvin.
-    pub fn set_temperature_in_kelvin(&self, temperature_in_kelvin: u16) -> HidResult<()> {
+    pub fn set_temperature_in_kelvin(&self, temperature_in_kelvin: u16) -> DeviceResult<()> {
+        if self.minimum_temperature_in_kelvin() < temperature_in_kelvin
+            || temperature_in_kelvin > self.maximum_temperature_in_kelvin()
+            || (temperature_in_kelvin % 100) != 0
+        {
+            return Err(DeviceError::InvalidTemperature(temperature_in_kelvin));
+        }
+
         let message =
             generate_set_temperature_in_kelvin_bytes(&self.device_type, temperature_in_kelvin);
 

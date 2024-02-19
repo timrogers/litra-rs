@@ -1,5 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand};
-use litra::{Device, Litra};
+use litra::{Device, DeviceError, Litra};
 use serde::Serialize;
 use std::process::ExitCode;
 
@@ -87,12 +87,6 @@ fn get_is_on_emoji(is_on: bool) -> &'static str {
     } else {
         "🌑"
     }
-}
-
-fn multiples_within_range(multiples_of: u16, start_range: u16, end_range: u16) -> Vec<u16> {
-    (start_range..=end_range)
-        .filter(|n| n % multiples_of == 0)
-        .collect()
 }
 
 fn check_serial_number_if_some(serial_number: Option<&str>) -> impl Fn(&Device) -> bool + '_ {
@@ -248,18 +242,6 @@ fn main() -> ExitCode {
             match (value, percentage) {
                 (Some(_), None) => {
                     let brightness_in_lumen = value.unwrap();
-
-                    if brightness_in_lumen < device_handle.minimum_brightness_in_lumen()
-                        || brightness_in_lumen > device_handle.maximum_brightness_in_lumen()
-                    {
-                        println!(
-                            "Brightness must be set to a value between {} lm and {} lm",
-                            device_handle.minimum_brightness_in_lumen(),
-                            device_handle.maximum_brightness_in_lumen()
-                        );
-                        return ExitCode::FAILURE;
-                    }
-
                     device_handle
                         .set_brightness_in_lumen(brightness_in_lumen)
                         .unwrap();
@@ -296,22 +278,16 @@ fn main() -> ExitCode {
                 }
             };
 
-            let allowed_temperatures_in_kelvin = multiples_within_range(
-                100,
-                device_handle.minimum_temperature_in_kelvin(),
-                device_handle.maximum_temperature_in_kelvin(),
-            );
-
-            if !allowed_temperatures_in_kelvin.contains(value) {
+            let result = device_handle.set_temperature_in_kelvin(*value);
+            if let Err(DeviceError::InvalidBrightness(_)) = result {
                 println!(
                     "Temperature must be set to a multiple of 100 between {} K and {} K",
                     device_handle.minimum_temperature_in_kelvin(),
                     device_handle.maximum_temperature_in_kelvin()
                 );
-                return ExitCode::FAILURE;
+            } else {
+                result.unwrap();
             }
-
-            device_handle.set_temperature_in_kelvin(*value).unwrap();
             ExitCode::SUCCESS
         }
     }
