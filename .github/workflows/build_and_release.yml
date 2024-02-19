@@ -36,7 +36,7 @@ jobs:
       - name: Run cargo build --release
         uses: actions-rs/cargo@v1
         with:
-          args: --release --target=${{ matrix.job.target }} 
+          args: --release --target=${{ matrix.job.target }}
           command: build
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
