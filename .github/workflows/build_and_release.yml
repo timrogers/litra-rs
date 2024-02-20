@@ -148,4 +148,4 @@ jobs:
           toolchain: nightly
           override: true
       - name: Publish to Crates.io
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
