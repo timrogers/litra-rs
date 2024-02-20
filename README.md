@@ -72,6 +72,6 @@ Each CLI command can also be called with `--help` for more detailed documentatio
 
 ### From a Rust application
 
-The `litra` crate includes functions for interacting with Litra devices from your Rust applications. 
+The `litra` crate includes functions for interacting with Litra devices from your Rust applications.
 
 To see the full API, check out the documentation on [Docs.rs](https://docs.rs/litra/) or read through [`src/lib.rs`](src/lib.rs).
