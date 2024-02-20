@@ -32,7 +32,6 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
 
