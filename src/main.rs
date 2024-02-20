@@ -2,6 +2,7 @@ use clap::{ArgGroup, Parser, Subcommand};
 use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
 use std::fmt;
+use std::num::TryFromIntError;
 use std::process::ExitCode;
 
 /// Control your USB-connected Logitech Litra lights from the command line
@@ -105,6 +106,7 @@ fn check_serial_number_if_some(serial_number: Option<&str>) -> impl Fn(&Device) 
 enum CliError {
     DeviceError(DeviceError),
     SerializationFailed(serde_json::Error),
+    BrightnessPrecentageCalculationFailed(TryFromIntError),
     DeviceNotFound,
 }
 
@@ -113,6 +115,9 @@ impl fmt::Display for CliError {
         match self {
             CliError::DeviceError(error) => error.fmt(f),
             CliError::SerializationFailed(error) => error.fmt(f),
+            CliError::BrightnessPrecentageCalculationFailed(error) => {
+                write!(f, "Failed to calculate brightness: {}", error)
+            }
             CliError::DeviceNotFound => write!(f, "Device not found."),
         }
     }
@@ -255,7 +260,7 @@ fn handle_brightness_command(
                 device_handle.maximum_brightness_in_lumen().into(),
             )
             .try_into()
-            .unwrap();
+            .map_err(CliError::BrightnessPrecentageCalculationFailed)?;
 
             device_handle.set_brightness_in_lumen(brightness_in_lumen)?;
         }
