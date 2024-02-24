@@ -1,4 +1,6 @@
 use clap::{ArgGroup, Parser, Subcommand};
+#[cfg(feature = "autotoggle")]
+use inotify::{EventMask, Inotify, WatchMask};
 use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
 use std::fmt;
@@ -67,6 +69,25 @@ enum Commands {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
     },
+    #[cfg(feature = "autotoggle")]
+    /// Automatically switch of the device on and off if the webcam is being used.
+    AutoToggle {
+        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        serial_number: Option<String>,
+    },
+}
+
+#[cfg(feature = "autotoggle")]
+fn get_video_device_paths() -> std::io::Result<Vec<std::path::PathBuf>> {
+    Ok(std::fs::read_dir("/dev")?
+        .filter_map(|entry| entry.ok())
+        .filter_map(|e| {
+            e.file_name()
+                .to_str()
+                .filter(|name| name.starts_with("video"))
+                .map(|_| e.path())
+        })
+        .collect())
 }
 
 fn percentage_within_range(percentage: u32, start_range: u32, end_range: u32) -> u32 {
@@ -105,6 +126,8 @@ fn check_serial_number_if_some(serial_number: Option<&str>) -> impl Fn(&Device) 
 #[derive(Debug)]
 enum CliError {
     DeviceError(DeviceError),
+    #[cfg(feature = "autotoggle")]
+    IoError(std::io::Error),
     SerializationFailed(serde_json::Error),
     BrightnessPrecentageCalculationFailed(TryFromIntError),
     DeviceNotFound,
@@ -114,6 +137,8 @@ impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CliError::DeviceError(error) => error.fmt(f),
+            #[cfg(feature = "autotoggle")]
+            CliError::IoError(error) => write!(f, "Input/Output error: {}", error),
             CliError::SerializationFailed(error) => error.fmt(f),
             CliError::BrightnessPrecentageCalculationFailed(error) => {
                 write!(f, "Failed to calculate brightness: {}", error)
@@ -126,6 +151,13 @@ impl fmt::Display for CliError {
 impl From<DeviceError> for CliError {
     fn from(error: DeviceError) -> Self {
         CliError::DeviceError(error)
+    }
+}
+
+#[cfg(feature = "autotoggle")]
+impl From<std::io::Error> for CliError {
+    fn from(error: std::io::Error) -> Self {
+        CliError::IoError(error)
     }
 }
 
@@ -277,6 +309,56 @@ fn handle_temperature_command(serial_number: Option<&str>, value: u16) -> CliRes
     Ok(())
 }
 
+#[cfg(feature = "autotoggle")]
+fn handle_autotoggle_command(serial_number: Option<&str>) -> CliResult {
+    let context = Litra::new()?;
+    let device_handle = get_first_supported_device(&context, serial_number)?;
+
+    let mut inotify = Inotify::init()?;
+    for path in get_video_device_paths()? {
+        match inotify
+            .watches()
+            .add(&path, WatchMask::OPEN | WatchMask::CLOSE)
+        {
+            Ok(_) => println!("Watching device {}", path.display()),
+            Err(_) => eprintln!("Failed to watch device {}", path.display()),
+        }
+    }
+
+    let mut num_devices_open: usize = 0;
+    loop {
+        // Read events that were added with `Watches::add` above.
+        let mut buffer = [0; 1024];
+        let events = inotify.read_events_blocking(&mut buffer)?;
+        for event in events {
+            match event.mask {
+                EventMask::OPEN => {
+                    match event.name.and_then(std::ffi::OsStr::to_str) {
+                        Some(name) => println!("Video device opened: {}", name),
+                        None => println!("Video device opened"),
+                    }
+                    num_devices_open = num_devices_open.saturating_add(1);
+                }
+                EventMask::CLOSE_WRITE | EventMask::CLOSE_NOWRITE => {
+                    match event.name.and_then(std::ffi::OsStr::to_str) {
+                        Some(name) => println!("Video device closed: {}", name),
+                        None => println!("Video device closed"),
+                    }
+                    num_devices_open = num_devices_open.saturating_sub(1);
+                }
+                _ => (),
+            }
+        }
+        if num_devices_open == 0 {
+            println!("No video devices open, turning off light");
+            device_handle.set_on(false)?;
+        } else {
+            println!("{} video devices open, turning on light", num_devices_open);
+            device_handle.set_on(true)?;
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let args = Cli::parse();
 
@@ -294,6 +376,10 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => handle_temperature_command(serial_number.as_deref(), *value),
+        #[cfg(feature = "autotoggle")]
+        Commands::AutoToggle { serial_number } => {
+            handle_autotoggle_command(serial_number.as_deref())
+        }
     };
 
     if let Err(error) = result {
