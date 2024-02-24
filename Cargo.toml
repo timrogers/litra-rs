@@ -20,7 +20,10 @@ serde_json = { version = "1.0.113", optional = true }
 
 [features]
 default = ["cli"]
-cli = ["dep:clap", "dep:serde", "dep:serde_json"]
+cli = ["dep:clap", "dep:serde", "dep:serde_json", "dep:inotify"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+inotify = { version = "0.10.2", optional = true }
 
 [[bin]]
 name = "litra"
