@@ -70,7 +70,7 @@ enum Commands {
         json: bool,
     },
     #[cfg(target_os = "linux")]
-    /// Automatically switch of the device on and off if the webcam is being used.
+    /// Automatically turn the Logitech Litra device on when your webcam turns on, and off when the webcam turns off
     AutoToggle {
         #[clap(long, short, help = "The serial number of the Logitech Litra device")]
         serial_number: Option<String>,
