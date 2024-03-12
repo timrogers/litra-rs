@@ -281,7 +281,7 @@ impl DeviceHandle {
 
     /// Sets the device's color temperature in Kelvin.
     pub fn set_temperature_in_kelvin(&self, temperature_in_kelvin: u16) -> DeviceResult<()> {
-        if self.minimum_temperature_in_kelvin() < temperature_in_kelvin
+        if temperature_in_kelvin < self.minimum_temperature_in_kelvin()
             || temperature_in_kelvin > self.maximum_temperature_in_kelvin()
             || (temperature_in_kelvin % 100) != 0
         {
