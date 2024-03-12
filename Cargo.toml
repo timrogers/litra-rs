@@ -1,6 +1,6 @@
 [package]
 name = "litra"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2021"
 authors = ["Tim Rogers <timrogers@github.com>"]
 description = "Control your Logitech Litra light from the command line"
