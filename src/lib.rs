@@ -231,7 +231,8 @@ impl DeviceHandle {
         let mut response_buffer = [0x00; 20];
         let response = self.hid_device.read(&mut response_buffer[..])?;
 
-        Ok(response_buffer[..response][5].into())
+        Ok(u16::from(response_buffer[..response][4]) * 256
+            + u16::from(response_buffer[..response][5]))
     }
 
     /// Sets the device's brightness in Lumen.
