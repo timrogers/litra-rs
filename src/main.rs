@@ -20,23 +20,43 @@ struct Cli {
 enum Commands {
     /// Turn your Logitech Litra device on
     On {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
     /// Turn your Logitech Litra device off
     Off {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
     /// Toggles your Logitech Litra device on or off
     Toggle {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
     /// Sets the brightness of your Logitech Litra device
     #[clap(group = ArgGroup::new("brightness").required(true).multiple(false))]
     Brightness {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
         #[clap(
             long,
@@ -55,7 +75,12 @@ enum Commands {
     },
     /// Sets the temperature of your Logitech Litra device
     Temperature {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
         #[clap(
             long,
@@ -72,7 +97,12 @@ enum Commands {
     #[cfg(target_os = "linux")]
     /// Automatically turn the Logitech Litra device on when your webcam turns on, and off when the webcam turns off
     AutoToggle {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
 }
