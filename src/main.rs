@@ -20,23 +20,43 @@ struct Cli {
 enum Commands {
     /// Turn your Logitech Litra device on
     On {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
     /// Turn your Logitech Litra device off
     Off {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
     /// Toggles your Logitech Litra device on or off
     Toggle {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
     },
     /// Sets the brightness of your Logitech Litra device
     #[clap(group = ArgGroup::new("brightness").required(true).multiple(false))]
     Brightness {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
         #[clap(
             long,
@@ -55,7 +75,12 @@ enum Commands {
     },
     /// Sets the temperature of your Logitech Litra device
     Temperature {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
         #[clap(
             long,
@@ -72,8 +97,20 @@ enum Commands {
     #[cfg(target_os = "linux")]
     /// Automatically turn the Logitech Litra device on when your webcam turns on, and off when the webcam turns off
     AutoToggle {
-        #[clap(long, short, help = "The serial number of the Logitech Litra device")]
+        #[clap(
+            long,
+            short,
+            env = "LITRA_SERIAL_NUMBER",
+            help = "The serial number of the Logitech Litra device"
+        )]
         serial_number: Option<String>,
+        #[clap(
+            long,
+            short,
+            env = "LITRA_VIDEO_DEVICE_PATH",
+            help = "Path of the video device to monitor"
+        )]
+        video_device_path: Option<String>,
     },
 }
 
@@ -310,12 +347,22 @@ fn handle_temperature_command(serial_number: Option<&str>, value: u16) -> CliRes
 }
 
 #[cfg(target_os = "linux")]
-fn handle_autotoggle_command(serial_number: Option<&str>) -> CliResult {
+fn handle_autotoggle_command(
+    serial_number: Option<&str>,
+    video_device_path: Option<&str>,
+) -> CliResult {
     let context = Litra::new()?;
     let device_handle = get_first_supported_device(&context, serial_number)?;
 
     let mut inotify = Inotify::init()?;
-    for path in get_video_device_paths()? {
+    let video_device_paths = get_video_device_paths()?.into_iter().filter(|device_path| {
+        !video_device_path.is_some_and(|expected_path| {
+            device_path
+                .to_str()
+                .is_some_and(|actual_path| actual_path != expected_path)
+        })
+    });
+    for path in video_device_paths {
         match inotify
             .watches()
             .add(&path, WatchMask::OPEN | WatchMask::CLOSE)
@@ -377,9 +424,10 @@ fn main() -> ExitCode {
             value,
         } => handle_temperature_command(serial_number.as_deref(), *value),
         #[cfg(target_os = "linux")]
-        Commands::AutoToggle { serial_number } => {
-            handle_autotoggle_command(serial_number.as_deref())
-        }
+        Commands::AutoToggle {
+            serial_number,
+            video_device_path,
+        } => handle_autotoggle_command(serial_number.as_deref(), video_device_path.as_deref()),
     };
 
     if let Err(error) = result {
