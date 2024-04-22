@@ -106,25 +106,38 @@ enum Commands {
         serial_number: Option<String>,
         #[clap(
             long,
-            short,
-            env = "LITRA_VIDEO_DEVICE_PATH",
+            short = 'b',
+            env = "LITRA_VIDEO_DEVICE_BUS",
             help = "Path of the video device to monitor"
         )]
-        video_device_path: Option<String>,
+        video_device_bus: Option<String>,
     },
 }
 
 #[cfg(target_os = "linux")]
-fn get_video_device_paths() -> std::io::Result<Vec<std::path::PathBuf>> {
-    Ok(std::fs::read_dir("/dev")?
-        .filter_map(|entry| entry.ok())
-        .filter_map(|e| {
-            e.file_name()
-                .to_str()
-                .filter(|name| name.starts_with("video"))
-                .map(|_| e.path())
-        })
-        .collect())
+fn get_video_devices() -> impl Iterator<Item = (v4l::context::Node, v4l::capability::Capabilities)>
+{
+    v4l::context::enum_devices().into_iter().filter_map(|node| {
+        v4l::Device::with_path(node.path())
+            .inspect_err(|err| {
+                eprintln!("Failed to open device {}: {}", node.path().display(), err)
+            })
+            .and_then(|device| {
+                device.query_caps().inspect_err(|err| {
+                    eprintln!(
+                        "Failed to query capabilities of {}: {}",
+                        node.path().display(),
+                        err
+                    )
+                })
+            })
+            .ok()
+            .filter(|caps| {
+                caps.capabilities
+                    .contains(v4l::capability::Flags::VIDEO_CAPTURE)
+            })
+            .map(|caps| (node, caps))
+    })
 }
 
 fn percentage_within_range(percentage: u32, start_range: u32, end_range: u32) -> u32 {
@@ -168,6 +181,8 @@ enum CliError {
     SerializationFailed(serde_json::Error),
     BrightnessPrecentageCalculationFailed(TryFromIntError),
     DeviceNotFound,
+    #[cfg(target_os = "linux")]
+    NoVideoDevicesMonitored,
 }
 
 impl fmt::Display for CliError {
@@ -181,6 +196,8 @@ impl fmt::Display for CliError {
                 write!(f, "Failed to calculate brightness: {}", error)
             }
             CliError::DeviceNotFound => write!(f, "Device not found."),
+            #[cfg(target_os = "linux")]
+            CliError::NoVideoDevicesMonitored => write!(f, "No video devices monitored."),
         }
     }
 }
@@ -349,29 +366,58 @@ fn handle_temperature_command(serial_number: Option<&str>, value: u16) -> CliRes
 #[cfg(target_os = "linux")]
 fn handle_autotoggle_command(
     serial_number: Option<&str>,
-    video_device_path: Option<&str>,
+    video_device_bus: Option<&str>,
 ) -> CliResult {
     let context = Litra::new()?;
     let device_handle = get_first_supported_device(&context, serial_number)?;
 
-    let mut inotify = Inotify::init()?;
-    let video_device_paths = get_video_device_paths()?.into_iter().filter(|device_path| {
-        !video_device_path.is_some_and(|expected_path| {
-            device_path
-                .to_str()
-                .is_some_and(|actual_path| actual_path != expected_path)
+    // Get video devices to monitor (and abort if none are available)
+    let video_devices: Vec<_> = get_video_devices()
+        .filter(|(_node, caps)| {
+            !video_device_bus.is_some_and(|expected_bus| caps.bus != expected_bus)
         })
-    });
-    for path in video_device_paths {
-        match inotify
-            .watches()
-            .add(&path, WatchMask::OPEN | WatchMask::CLOSE)
-        {
-            Ok(_) => println!("Watching device {}", path.display()),
-            Err(_) => eprintln!("Failed to watch device {}", path.display()),
+        .collect();
+    if video_devices.is_empty() {
+        match video_device_bus {
+            Some(vb) => eprintln!("No video device with bus '{}' found!", vb),
+            None => eprintln!("No video devices found!"),
         }
+        return Err(CliError::NoVideoDevicesMonitored);
     }
 
+    // Start monitoring of video devices using inotify
+    let mut inotify = Inotify::init()?;
+    let num_video_devices_monitored = video_devices
+        .into_iter()
+        .filter_map(|(node, caps)| {
+            inotify
+                .watches()
+                .add(node.path(), WatchMask::OPEN | WatchMask::CLOSE)
+                .inspect(|_| {
+                    println!(
+                        "Watching video device '{}' ({}, {})",
+                        caps.card,
+                        caps.bus,
+                        node.path().display()
+                    )
+                })
+                .inspect_err(|err| {
+                    eprintln!(
+                        "Failed to watch video device '{}' ({}, {}: {}",
+                        caps.card,
+                        caps.bus,
+                        node.path().display(),
+                        err
+                    )
+                })
+                .ok()
+        })
+        .count();
+    if num_video_devices_monitored == 0 {
+        return Err(CliError::NoVideoDevicesMonitored);
+    }
+
+    // Read inotify events and turn light on whenever there is a video device is open.
     let mut num_devices_open: usize = 0;
     loop {
         // Read events that were added with `Watches::add` above.
@@ -426,8 +472,8 @@ fn main() -> ExitCode {
         #[cfg(target_os = "linux")]
         Commands::AutoToggle {
             serial_number,
-            video_device_path,
-        } => handle_autotoggle_command(serial_number.as_deref(), video_device_path.as_deref()),
+            video_device_bus,
+        } => handle_autotoggle_command(serial_number.as_deref(), video_device_bus.as_deref()),
     };
 
     if let Err(error) = result {
