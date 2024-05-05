@@ -153,8 +153,8 @@ fn get_video_device_paths() -> std::io::Result<Vec<std::path::PathBuf>> {
 }
 
 fn percentage_within_range(percentage: u32, start_range: u32, end_range: u32) -> u32 {
-    let result = ((percentage - 1) as f64 / (100 - 1) as f64) * (end_range - start_range) as f64
-        + start_range as f64;
+    let range = end_range as f64 - start_range as f64;
+    let result = (percentage as f64 / 100.0) * range + start_range as f64;
     result.round() as u32
 }
 
