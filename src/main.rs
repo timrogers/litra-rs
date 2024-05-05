@@ -129,7 +129,7 @@ enum CliError {
     #[cfg(target_os = "linux")]
     IoError(std::io::Error),
     SerializationFailed(serde_json::Error),
-    BrightnessPrecentageCalculationFailed(TryFromIntError),
+    BrightnessPercentageCalculationFailed(TryFromIntError),
     DeviceNotFound,
 }
 
@@ -140,7 +140,7 @@ impl fmt::Display for CliError {
             #[cfg(target_os = "linux")]
             CliError::IoError(error) => write!(f, "Input/Output error: {}", error),
             CliError::SerializationFailed(error) => error.fmt(f),
-            CliError::BrightnessPrecentageCalculationFailed(error) => {
+            CliError::BrightnessPercentageCalculationFailed(error) => {
                 write!(f, "Failed to calculate brightness: {}", error)
             }
             CliError::DeviceNotFound => write!(f, "Device not found."),
@@ -292,7 +292,7 @@ fn handle_brightness_command(
                 device_handle.maximum_brightness_in_lumen().into(),
             )
             .try_into()
-            .map_err(CliError::BrightnessPrecentageCalculationFailed)?;
+            .map_err(CliError::BrightnessPercentageCalculationFailed)?;
 
             device_handle.set_brightness_in_lumen(brightness_in_lumen)?;
         }
