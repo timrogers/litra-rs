@@ -109,12 +109,12 @@ pub enum DeviceError {
 impl fmt::Display for DeviceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DeviceError::Unsupported => write!(f, "Device is not supported."),
+            DeviceError::Unsupported => write!(f, "Device is not supported"),
             DeviceError::InvalidBrightness(value) => {
-                write!(f, "Brightness in Lumen '{}' is not supported.", value)
+                write!(f, "Brightness {} lm is not supported", value)
             }
             DeviceError::InvalidTemperature(value) => {
-                write!(f, "Temperature in Kelvin '{}' is not supported.", value)
+                write!(f, "Temperature {} K is not supported", value)
             }
             DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
         }
