@@ -31,10 +31,9 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
+use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 use std::error::Error;
 use std::fmt;
-
-use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 
 /// Litra context.
 ///
