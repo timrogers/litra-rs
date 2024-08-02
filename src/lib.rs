@@ -54,7 +54,7 @@ impl Litra {
     }
 
     /// Returns an [`Iterator`] of connected devices supported by this library.
-    pub fn get_connected_devices(&self) -> impl Iterator<Item=Device<'_>> {
+    pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
         self.0
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
