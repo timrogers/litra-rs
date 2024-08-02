@@ -102,8 +102,6 @@ pub enum DeviceError {
     InvalidBrightness(u16),
     /// Tried to set an invalid temperature value.
     InvalidTemperature(u16),
-    /// Device didn't return a serial number.
-    NoSerial,
     /// A [`hidapi`] operation failed.
     HidError(HidError),
 }
@@ -118,7 +116,6 @@ impl fmt::Display for DeviceError {
             DeviceError::InvalidTemperature(value) => {
                 write!(f, "Temperature {} K is not supported", value)
             }
-            DeviceError::NoSerial => write!(f, "Device doesn't have a serial number"),
             DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
         }
     }
@@ -211,12 +208,9 @@ impl DeviceHandle {
     }
 
     /// Returns the serial number of the device.
-    pub fn serial_number(&self) -> DeviceResult<&str> {
+    pub fn serial_number(&self) -> DeviceResult<Option<&str>> {
         match self.hid_device.get_device_info() {
-            Ok(device_info) => match device_info.serial_number() {
-                Some(serial_number) => Ok(serial_number),
-                None => Err(DeviceError::NoSerial),
-            },
+            Ok(device_info) => Ok(device_info.serial_number()),
             Err(error) => Err(DeviceError::HidError(error)),
         }
     }
