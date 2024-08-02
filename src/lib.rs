@@ -53,7 +53,7 @@ impl Litra {
     }
 
     /// Returns an [`Iterator`] of connected devices supported by this library.
-    pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
+    pub fn get_connected_devices(&self) -> impl Iterator<Item=Device<'_>> {
         self.0
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
@@ -102,6 +102,8 @@ pub enum DeviceError {
     InvalidBrightness(u16),
     /// Tried to set an invalid temperature value.
     InvalidTemperature(u16),
+    /// Device didn't return a serial number.
+    NoSerial,
     /// A [`hidapi`] operation failed.
     HidError(HidError),
 }
@@ -116,6 +118,7 @@ impl fmt::Display for DeviceError {
             DeviceError::InvalidTemperature(value) => {
                 write!(f, "Temperature {} K is not supported", value)
             }
+            DeviceError::NoSerial => write!(f, "Device doesn't have a serial number"),
             DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
         }
     }
@@ -199,6 +202,23 @@ impl DeviceHandle {
     #[must_use]
     pub fn device_type(&self) -> DeviceType {
         self.device_type
+    }
+
+    /// The [`HidDevice`] for the device.
+    #[must_use]
+    pub fn hid_device(&self) -> &HidDevice {
+        &self.hid_device
+    }
+
+    /// Returns the serial number of the device.
+    pub fn serial_number(&self) -> DeviceResult<&str> {
+        match self.hid_device.get_device_info() {
+            Ok(device_info) => match device_info.serial_number() {
+                Some(serial_number) => Ok(serial_number),
+                None => Err(DeviceError::NoSerial),
+            },
+            Err(error) => Err(DeviceError::HidError(error)),
+        }
     }
 
     /// Queries the current power status of the device. Returns `true` if the device is currently on.
