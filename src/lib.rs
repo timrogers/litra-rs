@@ -31,9 +31,10 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
-use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 use std::error::Error;
 use std::fmt;
+
+use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 
 /// Litra context.
 ///
@@ -53,7 +54,7 @@ impl Litra {
     }
 
     /// Returns an [`Iterator`] of connected devices supported by this library.
-    pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
+    pub fn get_connected_devices(&self) -> impl Iterator<Item=Device<'_>> {
         self.0
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
@@ -208,9 +209,9 @@ impl DeviceHandle {
     }
 
     /// Returns the serial number of the device.
-    pub fn serial_number(&self) -> DeviceResult<Option<&str>> {
+    pub fn serial_number(&self) -> DeviceResult<Option<String>> {
         match self.hid_device.get_device_info() {
-            Ok(device_info) => Ok(device_info.serial_number()),
+            Ok(device_info) => Ok(device_info.serial_number().map(String::from)),
             Err(error) => Err(DeviceError::HidError(error)),
         }
     }
