@@ -16,7 +16,7 @@ keywords = ["logitech", "litra", "glow", "beam", "light"]
 hidapi = "2.6.3"
 clap = { version = "4.5.13", features = ["derive"], optional = true }
 serde = { version = "1.0.204", features = ["derive"], optional = true }
-serde_json = { version = "1.0.122", optional = true }
+serde_json = { version = "1.0.127", optional = true }
 
 [features]
 default = ["cli"]
