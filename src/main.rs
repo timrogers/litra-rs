@@ -5,7 +5,7 @@ use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
 use std::fmt;
 use std::num::TryFromIntError;
-use std::process;
+use std::process::ExitCode;
 #[cfg(target_os = "macos")]
 use std::process::Stdio;
 #[cfg(target_os = "macos")]
@@ -577,7 +577,7 @@ async fn handle_autotoggle_command(serial_number: Option<&str>, _verbose: bool) 
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> ExitCode {
     let args = Cli::parse();
 
     let result = match &args.command {
@@ -621,8 +621,8 @@ async fn main() {
 
     if let Err(error) = result {
         eprintln!("{}", error);
-        process::exit(1);
+        ExitCode::FAILURE
     } else {
-        process::exit(0);
+        ExitCode::SUCCESS
     }
 }
