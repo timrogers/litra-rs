@@ -26,6 +26,11 @@ cli = ["dep:clap", "dep:serde", "dep:serde_json", "dep:inotify"]
 [target.'cfg(target_os = "linux")'.dependencies]
 inotify = { version = "0.10.2", optional = true }
 
+# TODO: Remove this once we're on a newer tokio version that doesn't trip this up
+# https://github.com/tokio-rs/tokio/pull/6874
+[lints.clippy]
+needless_return = "allow"
+
 [[bin]]
 name = "litra"
 required-features = ["cli"]
