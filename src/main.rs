@@ -4,12 +4,14 @@ use inotify::{EventMask, Inotify, WatchMask};
 use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
 use std::fmt;
-#[cfg(target_os = "macos")]
-use std::io::{BufRead, BufReader};
 use std::num::TryFromIntError;
 use std::process::ExitCode;
 #[cfg(target_os = "macos")]
-use std::process::{Command, Stdio};
+use std::process::Stdio;
+#[cfg(target_os = "macos")]
+use tokio::io::{AsyncBufReadExt, BufReader};
+#[cfg(target_os = "macos")]
+use tokio::process::Command;
 
 /// Control your USB-connected Logitech Litra lights from the command line
 #[derive(Debug, Parser)]
@@ -140,12 +142,7 @@ enum Commands {
     AutoToggle {
         #[clap(long, short, help = "The serial number of the Logitech Litra device")]
         serial_number: Option<String>,
-        #[clap(
-            long,
-            short,
-            help = "Output detailed log messages",
-            default_value = "false"
-        )]
+        #[clap(long, short, action, help = "Output detailed log messages")]
         verbose: bool,
     },
 }
@@ -212,7 +209,7 @@ impl fmt::Display for CliError {
         match self {
             CliError::DeviceError(error) => error.fmt(f),
             #[cfg(any(target_os = "macos", target_os = "linux"))]
-            CliError::IoError(error) => write!(f, "Input/Output error: {}", error),
+            CliError::IoError(error) => write!(f, "Input/output error: {}", error),
             CliError::SerializationFailed(error) => error.fmt(f),
             CliError::BrightnessPercentageCalculationFailed(error) => {
                 write!(f, "Failed to calculate brightness: {}", error)
@@ -475,48 +472,62 @@ fn handle_temperature_down_command(serial_number: Option<&str>, value: u16) -> C
 }
 
 #[cfg(target_os = "macos")]
-fn handle_autotoggle_command(serial_number: Option<&str>, verbose: bool) -> CliResult {
+async fn handle_autotoggle_command(serial_number: Option<&str>, verbose: bool) -> CliResult {
     let context = Litra::new()?;
     let device_handle = get_first_supported_device(&context, serial_number)?;
 
-    let process = Command::new("log")
+    println!("Starting `log` process to listen for video device events...");
+
+    let mut child = Command::new("log")
         .arg("stream")
         .arg("--predicate")
         .arg("subsystem == \"com.apple.cmio\" AND (eventMessage CONTAINS \"AVCaptureSession_Tundra startRunning\" || eventMessage CONTAINS \"AVCaptureSession_Tundra stopRunning\")")
         .stdout(Stdio::piped())
         .spawn()?;
 
-    let stdout = process.stdout.unwrap();
-    let reader = BufReader::new(stdout);
+    let stdout = child
+        .stdout
+        .take()
+        .expect("Failed to start `log` process to listen for video device events");
+    let mut reader = BufReader::new(stdout).lines();
 
-    for line in reader.lines() {
-        match line {
-            Ok(log_line) => {
-                if !log_line.starts_with("Filtering the log data") {
-                    if verbose {
-                        println!("{}", log_line);
-                    }
+    println!("Listening for video device events...");
 
-                    if log_line.contains("AVCaptureSession_Tundra startRunning") {
-                        println!("Video device turned on, turning on light");
-                        device_handle.set_on(true)?;
-                    } else if log_line.contains("AVCaptureSession_Tundra stopRunning") {
-                        println!("Video device turned off, turning off light");
-                        device_handle.set_on(false)?;
-                    }
-                }
+    while let Some(log_line) = reader
+        .next_line()
+        .await
+        .expect("Failed to read log line from `log` process when listening for video device events")
+    {
+        if !log_line.starts_with("Filtering the log data") {
+            if verbose {
+                println!("{}", log_line);
             }
-            Err(e) => {
-                eprintln!("Error reading line: {}", e);
+
+            if log_line.contains("AVCaptureSession_Tundra startRunning") {
+                println!("Video device turned on, turning on Litra device");
+                device_handle.set_on(true)?;
+            } else if log_line.contains("AVCaptureSession_Tundra stopRunning") {
+                println!("Video device turned off, turning off Litra device");
+                device_handle.set_on(false)?;
             }
         }
     }
 
-    Ok(())
+    let status = child.wait().await.expect(
+        "Something went wrong with the `log` process when listening for video device events",
+    );
+
+    Err(CliError::IoError(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!(
+            "`log` process exited unexpectedly when listening for video device events - {}",
+            status
+        ),
+    )))
 }
 
 #[cfg(target_os = "linux")]
-fn handle_autotoggle_command(serial_number: Option<&str>, _verbose: bool) -> CliResult {
+async fn handle_autotoggle_command(serial_number: Option<&str>, _verbose: bool) -> CliResult {
     let context = Litra::new()?;
     let device_handle = get_first_supported_device(&context, serial_number)?;
 
@@ -565,7 +576,8 @@ fn handle_autotoggle_command(serial_number: Option<&str>, _verbose: bool) -> Cli
     }
 }
 
-fn main() -> ExitCode {
+#[tokio::main]
+async fn main() -> ExitCode {
     let args = Cli::parse();
 
     let result = match &args.command {
@@ -596,7 +608,7 @@ fn main() -> ExitCode {
         Commands::AutoToggle {
             serial_number,
             verbose,
-        } => handle_autotoggle_command(serial_number.as_deref(), *verbose),
+        } => handle_autotoggle_command(serial_number.as_deref(), *verbose).await,
         Commands::TemperatureUp {
             serial_number,
             value,
