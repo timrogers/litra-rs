@@ -147,6 +147,9 @@ jobs:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
       - uses: actions/download-artifact@v4
         with:
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+      - uses: actions/download-artifact@v4
+        with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -154,6 +157,7 @@ jobs:
           files: |
             litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
+            litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
             litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
   publish_on_homebrew:
     name: Publish release on Homebrew
