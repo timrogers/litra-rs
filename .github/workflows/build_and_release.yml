@@ -119,9 +119,7 @@ jobs:
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
       - name: Create universal macOS binary
-        run: lipo -create -output litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal \
-          litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64 \
-          litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+        run: lipo -create -output litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64 litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
       - name: Write Apple signing key to a file (macOS only)
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
