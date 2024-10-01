@@ -124,12 +124,10 @@ jobs:
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
         run: echo "$APPLE_SIGNING_KEY_P12" | base64 -d -o key.p12
-        if: matrix.job.os == 'macos-latest'
       - name: Write App Store Connect API key to a file (macOS only)
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: echo "$APP_STORE_CONNECT_API_KEY" > app_store_connect_api_key.json
-        if: matrix.job.os == 'macos-latest'
       - name: Sign macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
