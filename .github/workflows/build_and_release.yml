@@ -77,8 +77,12 @@ jobs:
           components: rustc, cargo
           toolchain: nightly
           override: true
+      - name: Install cargo-edit
+        run: cargo install cargo-edit
+      - name: Set the version to a dummy version to allow publishing
+        run: cargo set-version 9.9.9
       - name: Publish to Crates.io
-        run: cargo publish --dry-run
+        run: cargo publish --dry-run --allow-dirty
   create_github_release:
     name: Create release with binary assets
     runs-on: ubuntu-latest
