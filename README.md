@@ -12,7 +12,7 @@ With this tool, you can:
 - Check if the light is on or off
 - Set, get, increase and decrease the brightness of your light
 - Set, get, increase and decrease the temperature of your light
-- Automatically turn the light on and off when your webcam turns on or off (Linux only)
+- Automatically turn the light on and off when your webcam turns on or off (macOS and Linux only)
 
 ## Supported devices
 
@@ -66,7 +66,7 @@ The following commands are available for controlling your devices:
 - `litra temperature`: Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The temperature be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command.
 - `litra temperature-up`: Increases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 - `litra temperature-down`: Decreases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
-- `litra auto-toggle` **(Linux only)**: Automatically turns your Logitech Litra device on when your webcam starts capturing video, and off when it stops capturing video. This command should be left running in the background.
+- `litra auto-toggle` **(macOS and Linux only)**: Automatically turns your Logitech Litra device on when your webcam starts capturing video, and off when it stops capturing video. This command should be left running in the background.
 
 All of the these commands support a `--serial-number`/`-s` argument to specify the serial number of the device you want to target. If you only have one Litra device, you can omit this argument. If you have multiple devices, we recommend specifying it. If it isn't specified, the "first" device will be picked, but this isn't guaranteed to be stable between command runs.
 

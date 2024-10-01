@@ -4,8 +4,12 @@ use inotify::{EventMask, Inotify, WatchMask};
 use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
 use std::fmt;
+#[cfg(target_os = "macos")]
+use std::io::{BufRead, BufReader};
 use std::num::TryFromIntError;
 use std::process::ExitCode;
+#[cfg(target_os = "macos")]
+use std::process::{Command, Stdio};
 
 /// Control your USB-connected Logitech Litra lights from the command line
 #[derive(Debug, Parser)]
@@ -131,11 +135,18 @@ enum Commands {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
     },
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     /// Automatically turn the Logitech Litra device on when your webcam turns on, and off when the webcam turns off
     AutoToggle {
         #[clap(long, short, help = "The serial number of the Logitech Litra device")]
         serial_number: Option<String>,
+        #[clap(
+            long,
+            short,
+            help = "Output detailed log messages",
+            default_value = "false"
+        )]
+        verbose: bool,
     },
 }
 
@@ -188,7 +199,7 @@ fn check_serial_number_if_some(serial_number: Option<&str>) -> impl Fn(&Device) 
 #[derive(Debug)]
 enum CliError {
     DeviceError(DeviceError),
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     IoError(std::io::Error),
     SerializationFailed(serde_json::Error),
     BrightnessPercentageCalculationFailed(TryFromIntError),
@@ -200,7 +211,7 @@ impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CliError::DeviceError(error) => error.fmt(f),
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "macos", target_os = "linux"))]
             CliError::IoError(error) => write!(f, "Input/Output error: {}", error),
             CliError::SerializationFailed(error) => error.fmt(f),
             CliError::BrightnessPercentageCalculationFailed(error) => {
@@ -220,7 +231,7 @@ impl From<DeviceError> for CliError {
     }
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 impl From<std::io::Error> for CliError {
     fn from(error: std::io::Error) -> Self {
         CliError::IoError(error)
@@ -463,8 +474,49 @@ fn handle_temperature_down_command(serial_number: Option<&str>, value: u16) -> C
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn handle_autotoggle_command(serial_number: Option<&str>, verbose: bool) -> CliResult {
+    let context = Litra::new()?;
+    let device_handle = get_first_supported_device(&context, serial_number)?;
+
+    let process = Command::new("log")
+        .arg("stream")
+        .arg("--predicate")
+        .arg("subsystem == \"com.apple.cmio\" AND (eventMessage CONTAINS \"AVCaptureSession_Tundra startRunning\" || eventMessage CONTAINS \"AVCaptureSession_Tundra stopRunning\")")
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    let stdout = process.stdout.unwrap();
+    let reader = BufReader::new(stdout);
+
+    for line in reader.lines() {
+        match line {
+            Ok(log_line) => {
+                if !log_line.starts_with("Filtering the log data") {
+                    if verbose {
+                        println!("{}", log_line);
+                    }
+
+                    if log_line.contains("AVCaptureSession_Tundra startRunning") {
+                        println!("Video device turned on, turning on light");
+                        device_handle.set_on(true)?;
+                    } else if log_line.contains("AVCaptureSession_Tundra stopRunning") {
+                        println!("Video device turned off, turning off light");
+                        device_handle.set_on(false)?;
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error reading line: {}", e);
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(target_os = "linux")]
-fn handle_autotoggle_command(serial_number: Option<&str>) -> CliResult {
+fn handle_autotoggle_command(serial_number: Option<&str>, _verbose: bool) -> CliResult {
     let context = Litra::new()?;
     let device_handle = get_first_supported_device(&context, serial_number)?;
 
@@ -540,10 +592,11 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => handle_temperature_command(serial_number.as_deref(), *value),
-        #[cfg(target_os = "linux")]
-        Commands::AutoToggle { serial_number } => {
-            handle_autotoggle_command(serial_number.as_deref())
-        }
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        Commands::AutoToggle {
+            serial_number,
+            verbose,
+        } => handle_autotoggle_command(serial_number.as_deref(), *verbose),
         Commands::TemperatureUp {
             serial_number,
             value,
