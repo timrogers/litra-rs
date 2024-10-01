@@ -227,7 +227,7 @@ jobs:
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: litra
-          download-url: https://github.com/timrogers/litra-rs/releases/download/${{ steps.get_version.outputs.VERSION }}/litra_${{ steps.get_version.outputs.VERSION }}_darwin-amd64
+          download-url: https://github.com/timrogers/litra-rs/releases/download/${{ steps.get_version.outputs.VERSION }}/litra_${{ steps.get_version.outputs.VERSION }}_darwin-universal
           homebrew-tap: timrogers/homebrew-tap
           push-to: timrogers/homebrew-tap
           create-pullrequest: true
