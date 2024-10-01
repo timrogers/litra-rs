@@ -107,6 +107,9 @@ jobs:
     runs-on: macos-latest
     needs: build
     steps:
+      - name: Sanitise Git ref for use in filenames
+        id: sanitise_ref
+        run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
       - name: Download macOS amd64 binary
         uses: actions/download-artifact@v4
         with:
