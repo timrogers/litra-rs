@@ -102,6 +102,56 @@ jobs:
           notarize: true
           app_store_connect_api_key_json_file: app_store_connect_api_key.json
         if: matrix.job.os == 'macos-latest'
+  create_and_sign_macos_universal_binary:
+    name: Create and sign macOS universal binary (macOS only)
+    runs-on: macos-latest
+    needs: build
+    steps:
+      - name: Download macOS amd64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
+      - name: Download macOS arm64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+      - name: Create universal macOS binary
+        run: lipo -create -output litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal \
+          litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64 \
+          litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+      - name: Write Apple signing key to a file (macOS only)
+        env:
+          APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
+        run: echo "$APPLE_SIGNING_KEY_P12" | base64 -d -o key.p12
+        if: matrix.job.os == 'macos-latest'
+      - name: Write App Store Connect API key to a file (macOS only)
+        env:
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: echo "$APP_STORE_CONNECT_API_KEY" > app_store_connect_api_key.json
+        if: matrix.job.os == 'macos-latest'
+      - name: Sign macOS binary (macOS only)
+        uses: indygreg/apple-code-sign-action@v1
+        with:
+          input_path: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
+          p12_file: key.p12
+          p12_password: ${{ secrets.APPLE_SIGNING_KEY_PASSWORD }}
+          sign: true
+          sign_args: "--code-signature-flags=runtime"
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
+      - name: Archive macOS binary for notarisation (macOS only)
+        run: zip litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal.zip litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
+      - name: Notarise signed macOS binary (macOS only)
+        uses: indygreg/apple-code-sign-action@v1
+        with:
+          input_path: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal.zip
+          sign: false
+          notarize: true
+          app_store_connect_api_key_json_file: app_store_connect_api_key.json
+          
   cargo_publish_dry_run:
     name: Publish with Cargo in dry-run mode
     runs-on: ubuntu-latest
@@ -133,7 +183,9 @@ jobs:
   create_github_release:
     name: Create release with binary assets
     runs-on: ubuntu-latest
-    needs: build
+    needs: 
+      - build
+      - create_and_sign_macos_universal_binary
     if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - name: Sanitise Git ref for use in filenames
@@ -150,6 +202,9 @@ jobs:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
       - uses: actions/download-artifact@v4
         with:
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
+      - uses: actions/download-artifact@v4
+        with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -159,6 +214,7 @@ jobs:
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
             litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
+            litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
   publish_on_homebrew:
     name: Publish release on Homebrew
     runs-on: ubuntu-latest
