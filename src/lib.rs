@@ -49,7 +49,10 @@ impl fmt::Debug for Litra {
 impl Litra {
     /// Initialize a new Litra context.
     pub fn new() -> DeviceResult<Self> {
-        Ok(HidApi::new().map(Litra)?)
+        let hidapi = HidApi::new()?;
+        #[cfg(target_os = "macos")]
+        hidapi.set_open_exclusive(false);
+        Ok(Litra(hidapi))
     }
 
     /// Returns an [`Iterator`] of connected devices supported by this library.
@@ -177,7 +180,7 @@ impl Device<'_> {
     }
 
     /// Opens the device and returns a [`DeviceHandle`] that can be used for getting and setting the
-    /// device status.
+    /// device status. On macOS, this will open the device in non-exclusive mode.
     pub fn open(&self, context: &Litra) -> DeviceResult<DeviceHandle> {
         let hid_device = self.device_info.open_device(context.hidapi())?;
         Ok(DeviceHandle {
