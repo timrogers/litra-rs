@@ -292,34 +292,39 @@ fn handle_devices_command(json: bool) -> CliResult {
         );
         Ok(())
     } else {
-        for device_info in &litra_devices {
-            println!(
-                "- {} ({}): {} {}",
-                device_info.device_type,
-                device_info.serial_number,
-                get_is_on_text(device_info.is_on),
-                get_is_on_emoji(device_info.is_on)
-            );
+        if litra_devices.is_empty() {
+            println!("No Logitech Litra devices found");
+        } else {
+            for device_info in &litra_devices {
+                println!(
+                    "- {} ({}): {} {}",
+                    device_info.device_type,
+                    device_info.serial_number,
+                    get_is_on_text(device_info.is_on),
+                    get_is_on_emoji(device_info.is_on)
+                );
 
-            println!("  - Brightness: {} lm", device_info.brightness_in_lumen);
-            println!(
-                "    - Minimum: {} lm",
-                device_info.minimum_brightness_in_lumen
-            );
-            println!(
-                "    - Maximum: {} lm",
-                device_info.maximum_brightness_in_lumen
-            );
-            println!("  - Temperature: {} K", device_info.temperature_in_kelvin);
-            println!(
-                "    - Minimum: {} K",
-                device_info.minimum_temperature_in_kelvin
-            );
-            println!(
-                "    - Maximum: {} K",
-                device_info.maximum_temperature_in_kelvin
-            );
+                println!("  - Brightness: {} lm", device_info.brightness_in_lumen);
+                println!(
+                    "    - Minimum: {} lm",
+                    device_info.minimum_brightness_in_lumen
+                );
+                println!(
+                    "    - Maximum: {} lm",
+                    device_info.maximum_brightness_in_lumen
+                );
+                println!("  - Temperature: {} K", device_info.temperature_in_kelvin);
+                println!(
+                    "    - Minimum: {} K",
+                    device_info.minimum_temperature_in_kelvin
+                );
+                println!(
+                    "    - Maximum: {} K",
+                    device_info.maximum_temperature_in_kelvin
+                );
+            }
         }
+
         Ok(())
     }
 }
