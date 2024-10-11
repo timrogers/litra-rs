@@ -15,13 +15,18 @@ jobs:
               os: ubuntu-latest,
             }
           - {
+              target: aarch64-unknown-linux-gnu,
+              binary_name: linux-aarch64,
+              os: self-hosted,
+            }
+          - {
               target: x86_64-apple-darwin,
               binary_name: darwin-amd64,
               os: macos-latest,
             }
           - {
               target: aarch64-apple-darwin,
-              binary_name: darwin-arm64,
+              binary_name: darwin-aarch64,
               os: macos-latest,
             }
           - {
@@ -34,7 +39,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
-        if: matrix.job.os == 'ubuntu-latest'
+        if: matrix.job.os == 'ubuntu-latest' || matrix.job.os == 'self-hosted'
       - name: Cache Rust dependencies
         uses: actions/cache@v4.1.0
         with:
@@ -117,9 +122,9 @@ jobs:
       - name: Download macOS arm64 binary
         uses: actions/download-artifact@v4
         with:
-          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
       - name: Create universal macOS binary
-        run: lipo -create -output litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64 litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+        run: lipo -create -output litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64 litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
       - name: Write Apple signing key to a file (macOS only)
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
@@ -195,10 +200,13 @@ jobs:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
       - uses: actions/download-artifact@v4
         with:
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_linux-aarch64
+      - uses: actions/download-artifact@v4
+        with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
       - uses: actions/download-artifact@v4
         with:
-          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
       - uses: actions/download-artifact@v4
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
@@ -211,8 +219,9 @@ jobs:
           files: |
             litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
-            litra_${{ steps.sanitise_ref.outputs.value }}_darwin-arm64
+            litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
             litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
+            litra_${{ steps.sanitise_ref.outputs.value }}_linux-aarch64
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
   cargo_publish:
     name: Publish with Cargo to Crates.io
