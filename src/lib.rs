@@ -55,11 +55,17 @@ impl Litra {
         Ok(Litra(hidapi))
     }
 
-    /// Returns an [`Iterator`] of connected devices supported by this library.
+    /// Returns an [`Iterator`] of cached connected devices supported by this library. To refresh the list of connected devices, use [`Litra::refresh_connected_devices`].
     pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
         self.0
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
+    }
+
+    /// Refreshes the list of connected devices, returned by [`Litra::get_connected_devices`].
+    pub fn refresh_connected_devices(&mut self) -> DeviceResult<()> {
+        self.0.refresh_devices()?;
+        Ok(())
     }
 
     /// Retrieve the underlying hidapi context.
