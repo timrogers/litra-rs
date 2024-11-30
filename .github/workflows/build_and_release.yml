@@ -217,7 +217,5 @@ jobs:
       - name: Use Rust 1.83.0 with target ${{ matrix.job.target }}
         run: rustup override set 1.83.0-${{ matrix.job.target }}
       - uses: Swatinem/rust-cache@v2
-      - name: Build in release mode
-        run: cargo build --release --target=${{ matrix.job.target }}
       - name: Publish to Crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
