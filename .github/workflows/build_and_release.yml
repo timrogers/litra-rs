@@ -12,54 +12,45 @@ jobs:
           - {
               target: x86_64-unknown-linux-gnu,
               binary_name: linux-amd64,
-              os: ubuntu-latest,
+              runs_on: ubuntu-latest,
             }
           - {
               target: aarch64-unknown-linux-gnu,
               binary_name: linux-aarch64,
-              os: self-hosted,
+              runs_on: self-hosted,
             }
           - {
               target: x86_64-apple-darwin,
               binary_name: darwin-amd64,
-              os: macos-latest,
+              runs_on: macos-latest,
             }
           - {
               target: aarch64-apple-darwin,
               binary_name: darwin-aarch64,
-              os: macos-latest,
+              runs_on: macos-latest,
             }
           - {
               target: x86_64-pc-windows-msvc,
               binary_name: windows-amd64.exe,
-              os: windows-latest,
+              runs_on: windows-latest,
             }
-    runs-on: ${{ matrix.job.os }}
+    runs-on: ${{ matrix.job.runs_on }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Install rustup (self-hosted runners only)
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        if: matrix.job.runs_on == 'self-hosted'
+      - name: Add $HOME/.cargo/bin to PATH (self-hosted runners only)
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        if: matrix.job.runs_on == 'self-hosted'
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
-        if: matrix.job.os == 'ubuntu-latest' || matrix.job.os == 'self-hosted'
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4.1.2
-        with:
-          path: target
-          key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-build-
-      - name: Install latest Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          components: rustc, cargo
-          toolchain: nightly
-          override: true
-          target: ${{ matrix.job.target }}
-      - name: Run cargo build --release
-        uses: actions-rs/cargo@v1
-        with:
-          args: --release --target=${{ matrix.job.target }}
-          command: build
+        if: runner.os == 'Linux'
+      - uses: actions/checkout@v4
+      - name: Use Rust 1.83.0 with target ${{ matrix.job.target }}
+        run: rustup override set 1.83.0-${{ matrix.job.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build in release mode
+        run: cargo build --release --target=${{ matrix.job.target }}
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
         run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
@@ -76,12 +67,12 @@ jobs:
         env:
           APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
         run: echo "$APPLE_SIGNING_KEY_P12" | base64 -d -o key.p12
-        if: matrix.job.os == 'macos-latest'
+        if: runner.os == 'macOS'
       - name: Write App Store Connect API key to a file (macOS only)
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: echo "$APP_STORE_CONNECT_API_KEY" > app_store_connect_api_key.json
-        if: matrix.job.os == 'macos-latest'
+        if: runner.os == 'macOS'
       - name: Sign macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
@@ -90,7 +81,7 @@ jobs:
           p12_password: ${{ secrets.APPLE_SIGNING_KEY_PASSWORD }}
           sign: true
           sign_args: "--code-signature-flags=runtime"
-        if: matrix.job.os == 'macos-latest'
+        if: runner.os == 'macOS'
       - name: Upload binary as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -98,7 +89,7 @@ jobs:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
       - name: Archive macOS binary for notarisation (macOS only)
         run: zip litra_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}.zip litra_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
-        if: matrix.job.os == 'macos-latest'
+        if: runner.os == 'macOS'
       - name: Notarise signed macOS binary (macOS only)
         uses: indygreg/apple-code-sign-action@v1
         with:
@@ -106,7 +97,7 @@ jobs:
           sign: false
           notarize: true
           app_store_connect_api_key_json_file: app_store_connect_api_key.json
-        if: matrix.job.os == 'macos-latest'
+        if: runner.os == 'macOS'
   create_and_sign_macos_universal_binary:
     name: Create and sign macOS universal binary (macOS only)
     runs-on: macos-latest
@@ -164,20 +155,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4.1.2
-        with:
-          path: target
-          key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-build-
-      - name: Install latest Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          components: rustc, cargo
-          toolchain: nightly
-          override: true
+      - name: Use Rust 1.83.0
+        run: rustup override set 1.83.0
+      - uses: Swatinem/rust-cache@v2
       - name: Install cargo-edit
         run: cargo install cargo-edit
       - name: Set the version to a dummy version to allow publishing
@@ -234,19 +214,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install libudev-dev
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4.1.2
-        with:
-          path: target
-          key: ${{ runner.OS }}-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-build-
-      - name: Install latest Rust nightly
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          components: rustc, cargo
-          toolchain: nightly
-          override: true
+      - name: Use Rust 1.83.0 with target ${{ matrix.job.target }}
+        run: rustup override set 1.83.0-${{ matrix.job.target }}
+      - uses: Swatinem/rust-cache@v2
       - name: Publish to Crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
