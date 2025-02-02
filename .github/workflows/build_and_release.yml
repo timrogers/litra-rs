@@ -43,7 +43,7 @@ jobs:
         run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         if: matrix.job.runs_on == 'self-hosted'
       - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
         if: runner.os == 'Linux'
       - uses: actions/checkout@v4
       - name: Use Rust 1.83.0 with target ${{ matrix.job.target }}
@@ -154,7 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Use Rust 1.83.0
         run: rustup override set 1.83.0
       - uses: Swatinem/rust-cache@v2
@@ -213,7 +213,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install libudev-dev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Use Rust 1.83.0 with target ${{ matrix.job.target }}
         run: rustup override set 1.83.0-${{ matrix.job.target }}
       - uses: Swatinem/rust-cache@v2
