@@ -42,7 +42,7 @@ jobs:
       - name: Add $HOME/.cargo/bin to PATH (self-hosted runners only)
         run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         if: matrix.job.runs_on == 'self-hosted'
-      - name: install -y libudev-dev
+      - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
         if: runner.os == 'Linux'
       - uses: actions/checkout@v4
@@ -153,7 +153,7 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: install -y libudev-dev
+      - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Use Rust 1.83.0
         run: rustup override set 1.83.0
@@ -212,7 +212,7 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
-      - name: install -y libudev-dev
+      - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Use Rust 1.83.0 with target ${{ matrix.job.target }}
         run: rustup override set 1.83.0-${{ matrix.job.target }}
