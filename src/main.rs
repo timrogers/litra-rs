@@ -155,7 +155,7 @@ fn get_is_on_emoji(is_on: bool) -> &'static str {
 
 fn check_serial_number_if_some(serial_number: Option<&str>) -> impl Fn(&Device) -> bool + '_ {
     move |device| {
-        serial_number.as_ref().map_or(true, |expected| {
+        serial_number.as_ref().is_none_or(|expected| {
             device
                 .device_info()
                 .serial_number()
