@@ -19,8 +19,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
 
-      - name: Use Rust 1.83.0
-        run: rustup override set 1.83.0
+      - name: Use Rust 1.85.1
+        run: rustup override set 1.85.1
 
       - run: rustup component add clippy rustfmt
 
