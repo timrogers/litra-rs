@@ -32,8 +32,10 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
+use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 /// Litra context.
 ///
@@ -217,9 +219,37 @@ impl DeviceHandle {
     }
 
     /// Returns the serial number of the device.
+    /// 
+    /// If the device doesn't provide a serial number, a deterministic 
+    /// serial is generated based on device type, product ID, and path.
     pub fn serial_number(&self) -> DeviceResult<Option<String>> {
         match self.hid_device.get_device_info() {
-            Ok(device_info) => Ok(device_info.serial_number().map(String::from)),
+            Ok(device_info) => {
+                // Use actual serial if available and not empty
+                if let Some(serial) = device_info.serial_number() {
+                    if !serial.is_empty() {
+                        return Ok(Some(String::from(serial)));
+                    }
+                }
+                
+                // Otherwise generate a deterministic serial
+                let product_id = device_info.product_id();
+                let path = device_info.path().to_string_lossy();
+                let device_type_code = match self.device_type {
+                    DeviceType::LitraGlow => "GLOW",
+                    DeviceType::LitraBeam => "BEAM",
+                    DeviceType::LitraBeamLX => "BEAMLX",
+                };
+                
+                // Create a short deterministic identifier using first 8 chars of a hash
+                let mut hasher = DefaultHasher::new();
+                format!("{}:{}:{}", device_type_code, product_id, path).hash(&mut hasher);
+                let hash = hasher.finish();
+                
+                let generated = format!("{:012X}", hash % 0x1000000000000);
+                
+                Ok(Some(generated))
+            },
             Err(error) => Err(DeviceError::HidError(error)),
         }
     }
