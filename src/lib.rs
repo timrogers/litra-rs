@@ -32,10 +32,8 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
-use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::fmt;
-use std::hash::{Hash, Hasher};
 
 /// Litra context.
 ///
@@ -104,7 +102,21 @@ impl fmt::Display for DeviceType {
     }
 }
 
-/// A device-relatred error.
+impl std::str::FromStr for DeviceType {
+    type Err = DeviceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s_lower = s.to_lowercase().replace(" ", "");
+        match s_lower.as_str() {
+            "litraglow" | "glow" => Ok(DeviceType::LitraGlow),
+            "litrabeam" | "beam" => Ok(DeviceType::LitraBeam),
+            "litrabeamlx" | "beamlx" => Ok(DeviceType::LitraBeamLX),
+            _ => Err(DeviceError::UnsupportedDeviceType),
+        }
+    }
+}
+
+/// A device-related error.
 #[derive(Debug)]
 pub enum DeviceError {
     /// Tried to use a device that is not supported.
@@ -115,6 +127,8 @@ pub enum DeviceError {
     InvalidTemperature(u16),
     /// A [`hidapi`] operation failed.
     HidError(HidError),
+    /// Tried to parse an unsupported device type.
+    UnsupportedDeviceType,
 }
 
 impl fmt::Display for DeviceError {
@@ -128,6 +142,7 @@ impl fmt::Display for DeviceError {
                 write!(f, "Temperature {} K is not supported", value)
             }
             DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
+            DeviceError::UnsupportedDeviceType => write!(f, "Unsupported device type"),
         }
     }
 }
@@ -187,6 +202,12 @@ impl Device<'_> {
         self.device_type
     }
 
+    /// Returns the device path, which is a unique identifier for the device.
+    #[must_use]
+    pub fn device_path(&self) -> String {
+        self.device_info.path().to_string_lossy().to_string()
+    }
+
     /// Opens the device and returns a [`DeviceHandle`] that can be used for getting and setting the
     /// device status. On macOS, this will open the device in non-exclusive mode.
     pub fn open(&self, context: &Litra) -> DeviceResult<DeviceHandle> {
@@ -219,36 +240,31 @@ impl DeviceHandle {
     }
 
     /// Returns the serial number of the device.
-    /// 
-    /// If the device doesn't provide a serial number, a deterministic 
-    /// serial is generated based on device type, product ID, and path.
+    ///
+    /// This may return None if the device doesn't provide a serial number.
     pub fn serial_number(&self) -> DeviceResult<Option<String>> {
         match self.hid_device.get_device_info() {
             Ok(device_info) => {
-                // Use actual serial if available and not empty
                 if let Some(serial) = device_info.serial_number() {
                     if !serial.is_empty() {
                         return Ok(Some(String::from(serial)));
                     }
                 }
-                
-                // Otherwise generate a deterministic serial
-                let product_id = device_info.product_id();
-                let path = device_info.path().to_string_lossy();
-                let device_type_code = match self.device_type {
-                    DeviceType::LitraGlow => "GLOW",
-                    DeviceType::LitraBeam => "BEAM",
-                    DeviceType::LitraBeamLX => "BEAMLX",
-                };
-                
-                // Create a short deterministic identifier using first 8 chars of a hash
-                let mut hasher = DefaultHasher::new();
-                format!("{}:{}:{}", device_type_code, product_id, path).hash(&mut hasher);
-                let hash = hasher.finish();
-                
-                let generated = format!("{:012X}", hash % 0x1000000000000);
-                
-                Ok(Some(generated))
+
+                Ok(None)
+            },
+            Err(error) => Err(DeviceError::HidError(error)),
+        }
+    }
+
+    /// Returns the unique device path.
+    ///
+    /// This is a stable identifier that can be used to target a specific device,
+    /// even when the device doesn't provide a serial number.
+    pub fn device_path(&self) -> DeviceResult<String> {
+        match self.hid_device.get_device_info() {
+            Ok(device_info) => {
+                Ok(device_info.path().to_string_lossy().to_string())
             },
             Err(error) => Err(DeviceError::HidError(error)),
         }
