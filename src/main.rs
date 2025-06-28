@@ -1,11 +1,17 @@
-use clap::{ArgGroup, Parser, Subcommand};
 use litra::{Device, DeviceError, DeviceHandle, Litra};
 use serde::Serialize;
 use std::fmt;
 use std::num::TryFromIntError;
 use std::process::ExitCode;
 
+#[cfg(feature = "cli")]
+use clap::{ArgGroup, Parser, Subcommand};
+
+#[cfg(feature = "mcp")]
+mod mcp;
+
 /// Control your USB-connected Logitech Litra lights from the command line
+#[cfg(feature = "cli")]
 #[derive(Debug, Parser)]
 #[clap(name = "litra", version)]
 struct Cli {
@@ -14,6 +20,7 @@ struct Cli {
     command: Commands,
 }
 
+#[cfg(feature = "cli")]
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Turn your Logitech Litra device on
@@ -129,6 +136,9 @@ enum Commands {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
     },
+    /// Start an MCP (Model Context Protocol) server
+    #[cfg(feature = "mcp")]
+    Mcp,
 }
 
 fn percentage_within_range(percentage: u32, start_range: u32, end_range: u32) -> u32 {
@@ -436,6 +446,12 @@ fn handle_temperature_down_command(serial_number: Option<&str>, value: u16) -> C
     Ok(())
 }
 
+#[cfg(feature = "mcp")]
+fn handle_mcp_command() -> CliResult {
+    mcp::handle_mcp_command()
+}
+
+#[cfg(feature = "cli")]
 fn main() -> ExitCode {
     let args = Cli::parse();
 
@@ -471,6 +487,8 @@ fn main() -> ExitCode {
             serial_number,
             value,
         } => handle_temperature_down_command(serial_number.as_deref(), *value),
+        #[cfg(feature = "mcp")]
+        Commands::Mcp => handle_mcp_command(),
     };
 
     if let Err(error) = result {
@@ -478,5 +496,16 @@ fn main() -> ExitCode {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
+    }
+}
+
+#[cfg(all(feature = "mcp", not(feature = "cli")))]
+fn main() -> ExitCode {
+    match mcp::handle_mcp_command() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("{}", error);
+            ExitCode::FAILURE
+        }
     }
 }
