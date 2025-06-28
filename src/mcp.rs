@@ -13,7 +13,7 @@ use crate::{
     handle_on_command, handle_off_command, handle_toggle_command, 
     handle_brightness_command, handle_brightness_up_command, handle_brightness_down_command,
     handle_temperature_command, handle_temperature_up_command, handle_temperature_down_command,
-    DeviceInfo, CliResult, CliError,
+    get_connected_devices, CliResult, CliError,
 };
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -121,30 +121,7 @@ impl LitraMcpServer {
 
     #[tool(description = "List Logitech Litra devices connected to your computer")]
     async fn litra_devices(&self) -> Result<CallToolResult, McpError> {
-        use litra::Litra;
-        
-        let context = Litra::new().map_err(|e| McpError::internal_error(e.to_string(), None))?;
-        let litra_devices: Vec<DeviceInfo> = context
-            .get_connected_devices()
-            .filter_map(|device| {
-                let device_handle = device.open(&context).ok()?;
-                Some(DeviceInfo {
-                    serial_number: device
-                        .device_info()
-                        .serial_number()
-                        .unwrap_or("")
-                        .to_string(),
-                    device_type: device.device_type().to_string(),
-                    is_on: device_handle.is_on().ok()?,
-                    brightness_in_lumen: device_handle.brightness_in_lumen().ok()?,
-                    temperature_in_kelvin: device_handle.temperature_in_kelvin().ok()?,
-                    minimum_brightness_in_lumen: device_handle.minimum_brightness_in_lumen(),
-                    maximum_brightness_in_lumen: device_handle.maximum_brightness_in_lumen(),
-                    minimum_temperature_in_kelvin: device_handle.minimum_temperature_in_kelvin(),
-                    maximum_temperature_in_kelvin: device_handle.maximum_temperature_in_kelvin(),
-                })
-            })
-            .collect();
+        let litra_devices = get_connected_devices().map_err(|e| McpError::internal_error(e.to_string(), None))?;
         
         let json_str = serde_json::to_string_pretty(&litra_devices).map_err(|e| McpError::internal_error(e.to_string(), None))?;
         Ok(CallToolResult::success(vec![Content::text(json_str)]))

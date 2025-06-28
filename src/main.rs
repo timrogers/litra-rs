@@ -136,7 +136,7 @@ enum Commands {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
     },
-    /// Start an MCP (Model Context Protocol) server
+    /// Start a MCP (Model Context Protocol) server for controlling Litra devices
     #[cfg(feature = "mcp")]
     Mcp,
 }
@@ -231,7 +231,7 @@ struct DeviceInfo {
     pub maximum_temperature_in_kelvin: u16,
 }
 
-fn handle_devices_command(json: bool) -> CliResult {
+fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
     let context = Litra::new()?;
     let litra_devices: Vec<DeviceInfo> = context
         .get_connected_devices()
@@ -254,6 +254,11 @@ fn handle_devices_command(json: bool) -> CliResult {
             })
         })
         .collect();
+    Ok(litra_devices)
+}
+
+fn handle_devices_command(json: bool) -> CliResult {
+    let litra_devices = get_connected_devices()?;
 
     if json {
         println!(
@@ -499,13 +504,4 @@ fn main() -> ExitCode {
     }
 }
 
-#[cfg(all(feature = "mcp", not(feature = "cli")))]
-fn main() -> ExitCode {
-    match mcp::handle_mcp_command() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(error) => {
-            eprintln!("{}", error);
-            ExitCode::FAILURE
-        }
-    }
-}
+
