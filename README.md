@@ -1,6 +1,6 @@
 # `litra-rs`
 
-💡 Control your Logitech Litra light from the command line
+💡 Control Logitech Litra lights from the command line, Model Context Protocol (MCP) clients and Rust applications
 
 ---
 
