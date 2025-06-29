@@ -31,17 +31,20 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 1. Install the latest version by running `brew tap timrogers/tap && brew install litra`.
 1. Run `litra --help` to check that everything is working and see the available commands.
 
-### macOS, Linux or Windows via [Cargo](https://doc.rust-lang.org/cargo/), Rust's package manager
-
-1. Install [Rust](https://www.rust-lang.org/tools/install) on your machine, if it isn't already installed.
-1. Install the `litra` crate by running `cargo install litra`.
-1. Run `litra --help` to check that everything is working and see the available commands.
-
 ### macOS, Linux or Windows via direct binary download
 
 1. Download the [latest release](https://github.com/timrogers/litra-rs/releases/latest) for your platform. macOS, Linux and Windows devices are supported.
 2. Add the binary to `$PATH`, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
 3. Run `litra --help` to check that everything is working and see the available commands.
+
+
+### macOS, Linux or Windows via [Cargo](https://doc.rust-lang.org/cargo/), Rust's package manager
+
+**Note**: The latest version, v2.3.0, which introduced MCP support, is not currently available through Cargo. If you want to use MCP, please use another installation method.
+
+1. Install [Rust](https://www.rust-lang.org/tools/install) on your machine, if it isn't already installed.
+1. Install the `litra` crate by running `cargo install litra`.
+1. Run `litra --help` to check that everything is working and see the available commands.
 
 ### Configuring `udev` permissions on Linux
 
@@ -80,6 +83,8 @@ Each CLI command can also be called with `--help` for more detailed documentatio
 ### From a Model Context Protocol (MCP) client
 
 Running the `litra mcp` command starts a local Model Context Protocol (MCP) server, exposing tools to allow you to control your Litra devices from AI applications and agents.
+
+**Note**: The latest version, v2.3.0, which introduced MCP support, is not currently available through Cargo. If you want to use MCP, please use another installation method.
 
 #### Usage with Claude Desktop
 
