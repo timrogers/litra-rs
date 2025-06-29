@@ -43,7 +43,7 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 2. Add the binary to `$PATH`, so you can execute it from your shell. For the best experience, call it `litra` on macOS and Linux, and `litra.exe` on Windows.
 3. Run `litra --help` to check that everything is working and see the available commands.
 
-## Configuring `udev` permissions on Linux
+### Configuring `udev` permissions on Linux
 
 On most Linux operating systems, you will need to manually configure permissions using [`udev`](https://www.man7.org/linux/man-pages/man7/udev.7.html) to allow non-`root` users to access and manage Litra devices.
 
@@ -65,7 +65,7 @@ The following commands are available for controlling your devices:
 - `litra brightness`: Sets the brightness of your Logitech Litra device, using either `--value` (measured in lumens) or `--percentage` (as a percentage of the device's maximum brightness). The brightness can be set to any value between the minimum and maximum for the device returned by the `devices` command.
 - `litra brightness-up`: Increases the brightness of your Logitech Litra device, using either `--value` (measured in lumens) or `--percentage` (with a number of percentage points to add to the device's brightness)
 - `litra brightness-down`: Decreases the brightness of your Logitech Litra device, using either `--value` (measured in lumens) or `--percentage` (with a number of percentage points to subtract from the device's brightness)
-- `litra temperature`: Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The temperature be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command.
+- `litra temperature`: Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The temperature can be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command.
 - `litra temperature-up`: Increases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 - `litra temperature-down`: Decreases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 
