@@ -77,6 +77,48 @@ The following commands are also included:
 
 Each CLI command can also be called with `--help` for more detailed documentation.
 
+### From a Model Context Protocol (MCP) client
+
+Running the `litra mcp` command starts a local Model Context Protocol (MCP) server, exposing tools to allow you to control your Litra devices from AI applications and agents.
+
+#### Usage with Claude Desktop
+
+To use the MCP server with Claude Desktop:
+
+1. From the Claude app, open the "Developer" menu, then click "Open App Config File...".
+1. Add the MCP server to the `mcpServers` key in your config:
+
+```json
+{
+  "mcpServers": {
+    "litra": {
+      "command": "litra",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}
+```
+
+1. Back in the Claude app, open the "Developer" menu, then click "Reload MCP Configuration".
+1. To check that the MCP server is running, start a chat, then click the "Search and tools" button under the chat input, and check for a "litra" item in the menu.
+
+#### Available Tools
+
+The following tools are available:
+
+- `litra_devices`: List available Logitech Litra devices
+- `litra_on`: Turn your Logitech Litra device on
+- `litra_off`: Turn your Logitech Litra device off
+- `litra_toggle`: Toggles your Logitech Litra device on or off
+- `litra_brightness`: Sets the brightness of your Logitech Litra device to either a specific value measured in lumens (lm) or a percentage of the device's maximum brightness. The brightness can be set to any value between the minimum and maximum for the device returned by the `litra_devices` tool.
+- `litra_brightness_up`: Increases the brightness of your Logitech Litra device, using either a specific value (measured in lumens) or a percentage of the device's maximum brightness
+- `litra_brightness_down`: Decreases the brightness of your Logitech Litra device, using either a specific value (measured in lumens) or a percentage of the device's maximum brightness
+- `litra_temperature`: Sets the temperature of your Logitech Litra device to a specific value measured in kelvin (K). The temperature can be set to any multiple of 100 between the minimum and maximum for the device returned by the `litra_devices` tool.
+- `litra_temperature_up`: Increases the temperature of your Logitech Litra device, using a specific value measured in kelvin (K). The value must be a multiple of 100.
+- `litra_temperature_down`: Decreases the temperature of your Logitech Litra device, using a specific measured in kelvin (K). The value must be a multiple of 100.
+
 ### From a Rust application
 
 The `litra` crate includes functions for interacting with Litra devices from your Rust applications.
