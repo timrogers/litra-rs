@@ -181,6 +181,7 @@ enum CliError {
     BrightnessPercentageCalculationFailed(TryFromIntError),
     InvalidBrightness(i16),
     DeviceNotFound,
+    MCPError(String),
 }
 
 impl fmt::Display for CliError {
@@ -195,6 +196,7 @@ impl fmt::Display for CliError {
                 write!(f, "Brightness {} lm is not supported", brightness)
             }
             CliError::DeviceNotFound => write!(f, "Device not found."),
+            CliError::MCPError(message) => write!(f, "MCP server error: {}", message),
         }
     }
 }

@@ -219,11 +219,11 @@ pub fn handle_mcp_command() -> CliResult {
         let service = LitraMcpServer::new()
             .serve(stdio())
             .await
-            .map_err(|_| CliError::DeviceNotFound)?;
+            .map_err(|e| CliError::MCPError(format!("{e}")))?;
         service
             .waiting()
             .await
-            .map_err(|_| CliError::DeviceNotFound)?;
+            .map_err(|e| CliError::MCPError(format!("{e}")))?;
         Ok(())
     })
 }
