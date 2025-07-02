@@ -37,7 +37,14 @@ impl TypedValueParser for DeviceTypeValueParser {
     }
 }
 
+#[cfg(feature = "cli")]
+use clap::{ArgGroup, Parser, Subcommand};
+
+#[cfg(feature = "mcp")]
+mod mcp;
+
 /// Control your USB-connected Logitech Litra lights from the command line
+#[cfg(feature = "cli")]
 #[derive(Debug, Parser)]
 #[clap(name = "litra", version)]
 struct Cli {
@@ -45,6 +52,7 @@ struct Cli {
     command: Commands,
 }
 
+#[cfg(feature = "cli")]
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Turn your Logitech Litra device on
@@ -196,6 +204,9 @@ enum Commands {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
     },
+    /// Start a MCP (Model Context Protocol) server for controlling Litra devices
+    #[cfg(feature = "mcp")]
+    Mcp,
 }
 
 fn percentage_within_range(percentage: u32, start_range: u32, end_range: u32) -> u32 {
@@ -253,6 +264,7 @@ enum CliError {
     InvalidBrightness(i16),
     DeviceNotFound,
     MultipleFilterSpecified,
+    MCPError(String),
 }
 
 impl fmt::Display for CliError {
@@ -268,6 +280,7 @@ impl fmt::Display for CliError {
             }
             CliError::DeviceNotFound => write!(f, "Device not found."),
             CliError::MultipleFilterSpecified => write!(f, "Only one filter (--serial-number, --device-path, or --device-type) can be specified at a time."),
+            CliError::MCPError(message) => write!(f, "MCP server error: {}", message),
         }
     }
 }
@@ -392,7 +405,7 @@ struct DeviceInfo {
     pub maximum_temperature_in_kelvin: u16,
 }
 
-fn handle_devices_command(json: bool) -> CliResult {
+fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
     let context = Litra::new()?;
     
     let litra_devices: Vec<DeviceInfo> = context
@@ -455,6 +468,11 @@ fn handle_devices_command(json: bool) -> CliResult {
             })
         })
         .collect();
+    Ok(litra_devices)
+}
+
+fn handle_devices_command(json: bool) -> CliResult {
+    let litra_devices = get_connected_devices()?;
 
     if json {
         println!(
@@ -732,6 +750,12 @@ fn handle_temperature_down_command(
     })
 }
 
+#[cfg(feature = "mcp")]
+fn handle_mcp_command() -> CliResult {
+    mcp::handle_mcp_command()
+}
+
+#[cfg(feature = "cli")]
 fn main() -> ExitCode {
     let args = Cli::parse();
 
@@ -782,6 +806,8 @@ fn main() -> ExitCode {
             device_type,
             value,
         } => handle_temperature_down_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value),
+        #[cfg(feature = "mcp")]
+        Commands::Mcp => handle_mcp_command(),
     };
 
     if let Err(error) = result {
