@@ -563,6 +563,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ref-cast"
+version = "1.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a0ae411dbe946a674d89546582cea4ba2bb8defac896622d6496f14c23ba5cf"
+dependencies = [
+ "ref-cast-impl",
+]
+
+[[package]]
+name = "ref-cast-impl"
+version = "1.0.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1165225c21bff1f3bbce98f5a1f889949bc902d3575308cc7b0de30b4f6d27c7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "regex"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -608,8 +628,8 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "rmcp"
-version = "0.1.5"
-source = "git+https://github.com/modelcontextprotocol/rust-sdk#b9d7d61ebd6e8385cbc4aa105d4e25774fc1a59c"
+version = "0.2.1"
+source = "git+https://github.com/modelcontextprotocol/rust-sdk#3196c95f1dfafbffbdcdd6d365c94969ac975e6a"
 dependencies = [
  "base64",
  "chrono",
@@ -628,8 +648,8 @@ dependencies = [
 
 [[package]]
 name = "rmcp-macros"
-version = "0.1.5"
-source = "git+https://github.com/modelcontextprotocol/rust-sdk#b9d7d61ebd6e8385cbc4aa105d4e25774fc1a59c"
+version = "0.2.1"
+source = "git+https://github.com/modelcontextprotocol/rust-sdk#3196c95f1dfafbffbdcdd6d365c94969ac975e6a"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -658,12 +678,13 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "schemars"
-version = "0.8.22"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fbf2ae1b8bc8e02df939598064d22402220cd5bbcca1c76f7d6a310974d5615"
+checksum = "82d20c4491bc164fa2f6c5d44565947a52ad80b9505d8e36f8d54c27c739fcd0"
 dependencies = [
  "chrono",
  "dyn-clone",
+ "ref-cast",
  "schemars_derive",
  "serde",
  "serde_json",
@@ -671,9 +692,9 @@ dependencies = [
 
 [[package]]
 name = "schemars_derive"
-version = "0.8.22"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32e265784ad618884abaea0600a9adf15393368d840e0222d101a072f3f7534d"
+checksum = "33d020396d1d138dc19f1165df7545479dcd58d93810dc5d646a16e55abefa80"
 dependencies = [
  "proc-macro2",
  "quote",
