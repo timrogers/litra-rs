@@ -76,7 +76,8 @@ impl Litra {
 }
 
 /// The model of the device.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 pub enum DeviceType {
     /// Logitech [Litra Glow][glow] streaming light with TrueSoft.
     ///
@@ -102,7 +103,21 @@ impl fmt::Display for DeviceType {
     }
 }
 
-/// A device-relatred error.
+impl std::str::FromStr for DeviceType {
+    type Err = DeviceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s_lower = s.to_lowercase().replace(" ", "");
+        match s_lower.as_str() {
+            "glow" => Ok(DeviceType::LitraGlow),
+            "beam" => Ok(DeviceType::LitraBeam),
+            "beam_lx" => Ok(DeviceType::LitraBeamLX),
+            _ => Err(DeviceError::UnsupportedDeviceType),
+        }
+    }
+}
+
+/// A device-related error.
 #[derive(Debug)]
 pub enum DeviceError {
     /// Tried to use a device that is not supported.
@@ -113,6 +128,8 @@ pub enum DeviceError {
     InvalidTemperature(u16),
     /// A [`hidapi`] operation failed.
     HidError(HidError),
+    /// Tried to parse an unsupported device type.
+    UnsupportedDeviceType,
 }
 
 impl fmt::Display for DeviceError {
@@ -126,6 +143,7 @@ impl fmt::Display for DeviceError {
                 write!(f, "Temperature {} K is not supported", value)
             }
             DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
+            DeviceError::UnsupportedDeviceType => write!(f, "Unsupported device type"),
         }
     }
 }
@@ -185,6 +203,12 @@ impl Device<'_> {
         self.device_type
     }
 
+    /// Returns the device path, which is a unique identifier for the device.
+    #[must_use]
+    pub fn device_path(&self) -> String {
+        self.device_info.path().to_string_lossy().to_string()
+    }
+
     /// Opens the device and returns a [`DeviceHandle`] that can be used for getting and setting the
     /// device status. On macOS, this will open the device in non-exclusive mode.
     pub fn open(&self, context: &Litra) -> DeviceResult<DeviceHandle> {
@@ -217,9 +241,30 @@ impl DeviceHandle {
     }
 
     /// Returns the serial number of the device.
+    ///
+    /// This may return None if the device doesn't provide a serial number.
     pub fn serial_number(&self) -> DeviceResult<Option<String>> {
         match self.hid_device.get_device_info() {
-            Ok(device_info) => Ok(device_info.serial_number().map(String::from)),
+            Ok(device_info) => {
+                if let Some(serial) = device_info.serial_number() {
+                    if !serial.is_empty() {
+                        return Ok(Some(String::from(serial)));
+                    }
+                }
+
+                Ok(None)
+            }
+            Err(error) => Err(DeviceError::HidError(error)),
+        }
+    }
+
+    /// Returns the unique device path.
+    ///
+    /// This is a stable identifier that can be used to target a specific device,
+    /// even when the device doesn't provide a serial number.
+    pub fn device_path(&self) -> DeviceResult<String> {
+        match self.hid_device.get_device_info() {
+            Ok(device_info) => Ok(device_info.path().to_string_lossy().to_string()),
             Err(error) => Err(DeviceError::HidError(error)),
         }
     }

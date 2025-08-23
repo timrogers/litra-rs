@@ -443,6 +443,7 @@ dependencies = [
  "clap",
  "hidapi",
  "rmcp",
+ "schemars",
  "serde",
  "serde_json",
  "tokio",
