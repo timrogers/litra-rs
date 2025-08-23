@@ -5,6 +5,9 @@ use std::fmt;
 use std::process::ExitCode;
 use std::str::FromStr;
 
+#[cfg(feature = "cli")]
+use tabled::{Table, Tabled};
+
 // Custom parser for DeviceType
 #[derive(Debug, Clone)]
 struct DeviceTypeValueParser;
@@ -462,17 +465,35 @@ where
     }
 }
 
+#[cfg_attr(feature = "cli", derive(Tabled))]
 #[derive(Serialize, Debug)]
 struct DeviceInfo {
-    pub serial_number: String,
-    pub device_path: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Type"))]
     pub device_type: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Serial Number"))]
+    pub serial_number: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Device Path"))]
+    pub device_path: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Status"))]
+    pub status: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Brightness (lm)"))]
+    pub brightness_display: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Temperature (K)"))]
+    pub temperature_display: String,
+    // Keep original fields for JSON output
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub is_on: bool,
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub brightness_in_lumen: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub temperature_in_kelvin: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub minimum_brightness_in_lumen: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub maximum_brightness_in_lumen: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub minimum_temperature_in_kelvin: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
     pub maximum_temperature_in_kelvin: u16,
 }
 
@@ -522,9 +543,21 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
             };
 
             Some(DeviceInfo {
+                device_type: device.device_type().to_string(),
                 serial_number: serial,
                 device_path,
-                device_type: device.device_type().to_string(),
+                status: format!("{} {}", get_is_on_text(is_on), get_is_on_emoji(is_on)),
+                brightness_display: format!(
+                    "{}/{}",
+                    brightness,
+                    device_handle.maximum_brightness_in_lumen()
+                ),
+                temperature_display: format!(
+                    "{}/{}",
+                    temperature,
+                    device_handle.maximum_temperature_in_kelvin()
+                ),
+                // Keep original fields for JSON output
                 is_on,
                 brightness_in_lumen: brightness,
                 temperature_in_kelvin: temperature,
@@ -538,6 +571,7 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
     Ok(litra_devices)
 }
 
+#[cfg(feature = "cli")]
 fn handle_devices_command(json: bool) -> CliResult {
     let litra_devices = get_connected_devices()?;
 
@@ -551,34 +585,8 @@ fn handle_devices_command(json: bool) -> CliResult {
         if litra_devices.is_empty() {
             println!("No Logitech Litra devices found");
         } else {
-            for device_info in &litra_devices {
-                println!(
-                    "- {} ({}): {} {}",
-                    device_info.device_type,
-                    device_info.serial_number,
-                    get_is_on_text(device_info.is_on),
-                    get_is_on_emoji(device_info.is_on)
-                );
-                println!("  - Device path: {}", device_info.device_path);
-                println!("  - Brightness: {} lm", device_info.brightness_in_lumen);
-                println!(
-                    "    - Minimum: {} lm",
-                    device_info.minimum_brightness_in_lumen
-                );
-                println!(
-                    "    - Maximum: {} lm",
-                    device_info.maximum_brightness_in_lumen
-                );
-                println!("  - Temperature: {} K", device_info.temperature_in_kelvin);
-                println!(
-                    "    - Minimum: {} K",
-                    device_info.minimum_temperature_in_kelvin
-                );
-                println!(
-                    "    - Maximum: {} K",
-                    device_info.maximum_temperature_in_kelvin
-                );
-            }
+            let table = Table::new(&litra_devices);
+            println!("{}", table);
         }
 
         Ok(())

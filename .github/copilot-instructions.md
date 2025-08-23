@@ -13,6 +13,7 @@ This document provides instructions for AI agents to set up the development envi
 ### System Dependencies
 
 On Linux, install the required system library:
+
 ```bash
 sudo apt-get update && sudo apt-get install -y libudev-dev
 ```
@@ -30,11 +31,13 @@ rustup component add clippy rustfmt
 ### Build
 
 Check the project builds correctly:
+
 ```bash
 cargo check --locked --workspace --all-features --all-targets
 ```
 
 Build release binary:
+
 ```bash
 cargo build --release
 ```
@@ -42,6 +45,7 @@ cargo build --release
 ### Testing
 
 Run all tests:
+
 ```bash
 cargo test
 ```
@@ -49,12 +53,14 @@ cargo test
 ### Code Quality
 
 Format code and check formatting:
+
 ```bash
 cargo fmt --all
 cargo fmt --all -- --check
 ```
 
 Run linter with warnings treated as errors:
+
 ```bash
 cargo clippy --locked --workspace --all-features --all-targets -- -D warnings
 ```
@@ -62,6 +68,7 @@ cargo clippy --locked --workspace --all-features --all-targets -- -D warnings
 ### Running the Application
 
 After building, test the binary works:
+
 ```bash
 ./target/release/litra --help
 ```
