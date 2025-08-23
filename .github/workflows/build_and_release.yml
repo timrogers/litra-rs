@@ -46,8 +46,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
         if: runner.os == 'Linux'
       - uses: actions/checkout@v4
-      - name: Use Rust 1.85.1 with target ${{ matrix.job.target }}
-        run: rustup override set 1.85.1-${{ matrix.job.target }}
+      - name: Use Rust 1.89.0 with target ${{ matrix.job.target }}
+        run: rustup override set 1.89.0-${{ matrix.job.target }}
       - uses: Swatinem/rust-cache@v2
       - name: Build in release mode
         run: cargo build --release --target=${{ matrix.job.target }}
@@ -155,8 +155,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
-      - name: Use Rust 1.85.1
-        run: rustup override set 1.85.1
+      - name: Use Rust 1.89.0
+        run: rustup override set 1.89.0
       - uses: Swatinem/rust-cache@v2
       - name: Install cargo-edit
         run: cargo install cargo-edit
@@ -214,8 +214,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
-      - name: Use Rust 1.85.1 with target ${{ matrix.job.target }}
-        run: rustup override set 1.85.1-${{ matrix.job.target }}
+      - name: Use Rust 1.89.0 with target ${{ matrix.job.target }}
+        run: rustup override set 1.89.0-${{ matrix.job.target }}
       - uses: Swatinem/rust-cache@v2
       - name: Publish to Crates.io
         run: cargo publish --token ${{ secrets.CRATES_IO_API_TOKEN }}
