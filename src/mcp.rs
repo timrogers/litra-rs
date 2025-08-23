@@ -7,7 +7,7 @@ use rmcp::{
     model::*,
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
-    Error as McpError, ServerHandler, ServiceExt,
+    ErrorData as McpError, ServerHandler, ServiceExt,
 };
 
 use crate::{
