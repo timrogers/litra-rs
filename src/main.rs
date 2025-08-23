@@ -52,7 +52,7 @@ const SERIAL_NUMBER_ARGUMENT_HELP: &str = "Specify the device to target by its s
 const DEVICE_PATH_ARGUMENT_HELP: &str =
     "Specify the device to target by its path (useful for devices that don't show a serial number)";
 const DEVICE_TYPE_ARGUMENT_HELP: &str =
-    "Specify the device to target by its type (LitraGlow, LitraBeam, LitraBeamLX)";
+    "Specify the device to target by its type (`glow`, `beam` or `beam_lx`)";
 
 #[cfg(feature = "cli")]
 #[derive(Debug, Subcommand)]

@@ -109,9 +109,9 @@ impl std::str::FromStr for DeviceType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s_lower = s.to_lowercase().replace(" ", "");
         match s_lower.as_str() {
-            "litra_glow" | "glow" => Ok(DeviceType::LitraGlow),
-            "litra_beam" | "beam" => Ok(DeviceType::LitraBeam),
-            "litra_beam_lx" | "beam_lx" => Ok(DeviceType::LitraBeamLX),
+            "glow" => Ok(DeviceType::LitraGlow),
+            "beam" => Ok(DeviceType::LitraBeam),
+            "beam_lx" => Ok(DeviceType::LitraBeamLX),
             _ => Err(DeviceError::UnsupportedDeviceType),
         }
     }
