@@ -1,8 +1,7 @@
-use clap::{ArgGroup, Parser, Subcommand, builder::TypedValueParser};
+use clap::{builder::TypedValueParser, ArgGroup, Parser, Subcommand};
 use litra::{Device, DeviceError, DeviceHandle, DeviceResult, DeviceType, Litra};
 use serde::Serialize;
 use std::fmt;
-use std::num::TryFromIntError;
 use std::process::ExitCode;
 use std::str::FromStr;
 
@@ -37,9 +36,6 @@ impl TypedValueParser for DeviceTypeValueParser {
     }
 }
 
-#[cfg(feature = "cli")]
-use clap::{ArgGroup, Parser, Subcommand};
-
 #[cfg(feature = "mcp")]
 mod mcp;
 
@@ -52,44 +48,82 @@ struct Cli {
     command: Commands,
 }
 
+const SERIAL_NUMBER_ARGUMENT_HELP: &str = "Specify the device to target by its serial number";
+const DEVICE_PATH_ARGUMENT_HELP: &str =
+    "Specify the device to target by its path (useful for devices that don't show a serial number)";
+const DEVICE_TYPE_ARGUMENT_HELP: &str =
+    "Specify the device to target by its type (LitraGlow, LitraBeam, LitraBeamLX)";
+
 #[cfg(feature = "cli")]
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Turn your Logitech Litra device on
+    /// Turn your Logitech Litra device on. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     On {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
     },
-    /// Turn your Logitech Litra device off
+    /// Turn your Logitech Litra device off. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     Off {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
     },
-    /// Toggles your Logitech Litra device on or off
+    /// Toggles your Logitech Litra device on or off. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     Toggle {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
     },
-    /// Sets the brightness of your Logitech Litra device
+    /// Sets the brightness of your Logitech Litra device. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     #[clap(group = ArgGroup::new("brightness").required(true).multiple(false))]
     Brightness {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -106,14 +140,22 @@ enum Commands {
         )]
         percentage: Option<u8>,
     },
-    /// Increases the brightness of your Logitech Litra device. The command will error if trying to increase the brightness beyond the device's maximum.
+    /// Increases the brightness of your Logitech Litra device. The command will error if trying to increase the brightness beyond the device's maximum. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     #[clap(group = ArgGroup::new("brightness-up").required(true).multiple(false))]
     BrightnessUp {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -130,14 +172,22 @@ enum Commands {
         )]
         percentage: Option<u8>,
     },
-    /// Decreases the brightness of your Logitech Litra device. The command will error if trying to decrease the brightness below the device's minimum.
+    /// Decreases the brightness of your Logitech Litra device. The command will error if trying to decrease the brightness below the device's minimum. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     #[clap(group = ArgGroup::new("brightness-down").required(true).multiple(false))]
     BrightnessDown {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -154,13 +204,21 @@ enum Commands {
         )]
         percentage: Option<u8>,
     },
-    /// Sets the temperature of your Logitech Litra device
+    /// Sets the temperature of your Logitech Litra device. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     Temperature {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -169,13 +227,21 @@ enum Commands {
         )]
         value: u16,
     },
-    /// Increases the temperature of your Logitech Litra device. The command will error if trying to increase the temperature beyond the device's maximum.
+    /// Increases the temperature of your Logitech Litra device. The command will error if trying to increase the temperature beyond the device's maximum. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     TemperatureUp {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -184,13 +250,21 @@ enum Commands {
         )]
         value: u16,
     },
-    /// Decreases the temperature of your Logitech Litra device. The command will error if trying to decrease the temperature below the device's minimum.
+    /// Decreases the temperature of your Logitech Litra device. The command will error if trying to decrease the temperature below the device's minimum. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
     TemperatureDown {
-        #[clap(long, short, help = "Specify the device to target by its serial number")]
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
         serial_number: Option<String>,
-        #[clap(long, short('p'), help = "Specify the device path to target (useful when devices don't have serial numbers)")]
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = "Specify the type of device to target (LitraGlow, LitraBeam, LitraBeamLX)", value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -260,8 +334,6 @@ fn check_device_filters<'a>(
 enum CliError {
     DeviceError(DeviceError),
     SerializationFailed(serde_json::Error),
-    BrightnessPercentageCalculationFailed(TryFromIntError),
-    InvalidBrightness(i16),
     DeviceNotFound,
     MultipleFilterSpecified,
     MCPError(String),
@@ -272,12 +344,6 @@ impl fmt::Display for CliError {
         match self {
             CliError::DeviceError(error) => error.fmt(f),
             CliError::SerializationFailed(error) => error.fmt(f),
-            CliError::BrightnessPercentageCalculationFailed(error) => {
-                write!(f, "Failed to calculate brightness: {}", error)
-            }
-            CliError::InvalidBrightness(brightness) => {
-                write!(f, "Brightness {} lm is not supported", brightness)
-            }
             CliError::DeviceNotFound => write!(f, "Device not found."),
             CliError::MultipleFilterSpecified => write!(f, "Only one filter (--serial-number, --device-path, or --device-type) can be specified at a time."),
             CliError::MCPError(message) => write!(f, "MCP server error: {}", message),
@@ -299,9 +365,9 @@ fn validate_single_filter(
     device_path: Option<&str>,
     device_type: Option<&DeviceType>,
 ) -> Result<(), CliError> {
-    let filter_count = serial_number.is_some() as usize +
-                       device_path.is_some() as usize +
-                       device_type.is_some() as usize;
+    let filter_count = serial_number.is_some() as usize
+        + device_path.is_some() as usize
+        + device_type.is_some() as usize;
 
     if filter_count > 1 {
         Err(CliError::MultipleFilterSpecified)
@@ -323,7 +389,12 @@ fn get_all_supported_devices(
     // Filter by various criteria
     let potential_devices: Vec<Device> = context
         .get_connected_devices()
-        .filter(check_device_filters(context, serial_number, device_path, device_type))
+        .filter(check_device_filters(
+            context,
+            serial_number,
+            device_path,
+            device_type,
+        ))
         .collect();
 
     // If we need to filter by serial, open devices and check
@@ -407,7 +478,7 @@ struct DeviceInfo {
 
 fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
     let context = Litra::new()?;
-    
+
     let litra_devices: Vec<DeviceInfo> = context
         .get_connected_devices()
         .filter_map(|device| {
@@ -417,19 +488,15 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                     return None;
                 }
             };
-            
+
             // Get the device path
             let device_path = device.device_path();
 
             // Get serial number if available
             let serial = match device_handle.serial_number() {
                 Ok(Some(s)) => s,
-                Ok(None) => {
-                    "UNKNOWN".to_string()
-                },
-                Err(_e) => {
-                    "UNKNOWN".to_string()
-                }
+                Ok(None) => "UNKNOWN".to_string(),
+                Err(_e) => "UNKNOWN".to_string(),
             };
 
             // Try to get attributes, log errors
@@ -608,7 +675,7 @@ fn handle_brightness_command(
                     device_handle.minimum_brightness_in_lumen().into(),
                     device_handle.maximum_brightness_in_lumen().into(),
                 );
-                
+
                 // Convert to u16, handling any potential conversion errors
                 // DeviceError doesn't have a constructor for this error type,
                 // so we'll use InvalidBrightness as the closest match
@@ -645,7 +712,7 @@ fn handle_brightness_up_command(
                     device_handle.maximum_brightness_in_lumen().into(),
                 ) as u16
                     - device_handle.minimum_brightness_in_lumen();
-                
+
                 let new_brightness = current_brightness + brightness_to_add;
                 Ok(new_brightness)
             })
@@ -665,12 +732,12 @@ fn handle_brightness_down_command(
         (Some(brightness_to_subtract), None) => {
             with_brightness_setting(serial_number, device_path, device_type, |device_handle| {
                 let current_brightness = device_handle.brightness_in_lumen()?;
-                
+
                 if current_brightness <= brightness_to_subtract {
                     // Skip this device by returning an error which will be ignored
                     return Err(DeviceError::InvalidBrightness(0));
                 }
-                
+
                 let new_brightness = current_brightness - brightness_to_subtract;
                 Ok(new_brightness)
             })
@@ -678,21 +745,21 @@ fn handle_brightness_down_command(
         (None, Some(pct)) => {
             with_brightness_setting(serial_number, device_path, device_type, |device_handle| {
                 let current_brightness = device_handle.brightness_in_lumen()?;
-                
+
                 let brightness_to_subtract = percentage_within_range(
                     pct.into(),
                     device_handle.minimum_brightness_in_lumen().into(),
                     device_handle.maximum_brightness_in_lumen().into(),
                 ) as u16
                     - device_handle.minimum_brightness_in_lumen();
-                
+
                 let new_brightness = current_brightness as i16 - brightness_to_subtract as i16;
-                
+
                 if new_brightness <= 0 {
                     // Skip this device by returning an error which will be ignored
                     return Err(DeviceError::InvalidBrightness(0));
                 }
-                
+
                 Ok(new_brightness as u16)
             })
         }
@@ -704,7 +771,7 @@ fn handle_temperature_command(
     serial_number: Option<&str>,
     device_path: Option<&str>,
     device_type: Option<&DeviceType>,
-    value: u16
+    value: u16,
 ) -> CliResult {
     with_device(serial_number, device_path, device_type, |device_handle| {
         device_handle.set_temperature_in_kelvin(value)
@@ -715,17 +782,17 @@ fn handle_temperature_up_command(
     serial_number: Option<&str>,
     device_path: Option<&str>,
     device_type: Option<&DeviceType>,
-    value: u16
+    value: u16,
 ) -> CliResult {
     with_device(serial_number, device_path, device_type, |device_handle| {
         let current_temperature = device_handle.temperature_in_kelvin()?;
         let new_temperature = current_temperature + value;
-        
+
         // Check if new temperature would exceed maximum
         if new_temperature > device_handle.maximum_temperature_in_kelvin() {
             return Err(DeviceError::InvalidTemperature(new_temperature));
         }
-        
+
         device_handle.set_temperature_in_kelvin(new_temperature)
     })
 }
@@ -734,7 +801,7 @@ fn handle_temperature_down_command(
     serial_number: Option<&str>,
     device_path: Option<&str>,
     device_type: Option<&DeviceType>,
-    value: u16
+    value: u16,
 ) -> CliResult {
     with_device(serial_number, device_path, device_type, |device_handle| {
         let current_temperature = device_handle.temperature_in_kelvin()?;
@@ -744,7 +811,7 @@ fn handle_temperature_down_command(
             // Skip this device by returning an error which will be ignored
             return Err(DeviceError::InvalidTemperature(0));
         }
-        
+
         let new_temperature = current_temperature - value;
         device_handle.set_temperature_in_kelvin(new_temperature)
     })
@@ -761,51 +828,105 @@ fn main() -> ExitCode {
 
     let result = match &args.command {
         Commands::Devices { json } => handle_devices_command(*json),
-        Commands::On { serial_number, device_path, device_type } =>
-            handle_on_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref()),
-        Commands::Off { serial_number, device_path, device_type } =>
-            handle_off_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref()),
-        Commands::Toggle { serial_number, device_path, device_type } =>
-            handle_toggle_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref()),
+        Commands::On {
+            serial_number,
+            device_path,
+            device_type,
+        } => handle_on_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+        ),
+        Commands::Off {
+            serial_number,
+            device_path,
+            device_type,
+        } => handle_off_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+        ),
+        Commands::Toggle {
+            serial_number,
+            device_path,
+            device_type,
+        } => handle_toggle_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+        ),
         Commands::Brightness {
             serial_number,
             device_path,
             device_type,
             value,
             percentage,
-        } => handle_brightness_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value, *percentage),
+        } => handle_brightness_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+            *percentage,
+        ),
         Commands::BrightnessUp {
             serial_number,
             device_path,
             device_type,
             value,
             percentage,
-        } => handle_brightness_up_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value, *percentage),
+        } => handle_brightness_up_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+            *percentage,
+        ),
         Commands::BrightnessDown {
             serial_number,
             device_path,
             device_type,
             value,
             percentage,
-        } => handle_brightness_down_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value, *percentage),
+        } => handle_brightness_down_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+            *percentage,
+        ),
         Commands::Temperature {
             serial_number,
             device_path,
             device_type,
             value,
-        } => handle_temperature_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value),
+        } => handle_temperature_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+        ),
         Commands::TemperatureUp {
             serial_number,
             device_path,
             device_type,
             value,
-        } => handle_temperature_up_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value),
+        } => handle_temperature_up_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+        ),
         Commands::TemperatureDown {
             serial_number,
             device_path,
             device_type,
             value,
-        } => handle_temperature_down_command(serial_number.as_deref(), device_path.as_deref(), device_type.as_ref(), *value),
+        } => handle_temperature_down_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+        ),
         #[cfg(feature = "mcp")]
         Commands::Mcp => handle_mcp_command(),
     };

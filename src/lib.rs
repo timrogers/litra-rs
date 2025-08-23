@@ -76,7 +76,8 @@ impl Litra {
 }
 
 /// The model of the device.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 pub enum DeviceType {
     /// Logitech [Litra Glow][glow] streaming light with TrueSoft.
     ///
@@ -108,9 +109,9 @@ impl std::str::FromStr for DeviceType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s_lower = s.to_lowercase().replace(" ", "");
         match s_lower.as_str() {
-            "litraglow" | "glow" => Ok(DeviceType::LitraGlow),
-            "litrabeam" | "beam" => Ok(DeviceType::LitraBeam),
-            "litrabeamlx" | "beamlx" => Ok(DeviceType::LitraBeamLX),
+            "litra_glow" | "glow" => Ok(DeviceType::LitraGlow),
+            "litra_beam" | "beam" => Ok(DeviceType::LitraBeam),
+            "litra_beam_lx" | "beam_lx" => Ok(DeviceType::LitraBeamLX),
             _ => Err(DeviceError::UnsupportedDeviceType),
         }
     }
@@ -252,7 +253,7 @@ impl DeviceHandle {
                 }
 
                 Ok(None)
-            },
+            }
             Err(error) => Err(DeviceError::HidError(error)),
         }
     }
@@ -263,9 +264,7 @@ impl DeviceHandle {
     /// even when the device doesn't provide a serial number.
     pub fn device_path(&self) -> DeviceResult<String> {
         match self.hid_device.get_device_info() {
-            Ok(device_info) => {
-                Ok(device_info.path().to_string_lossy().to_string())
-            },
+            Ok(device_info) => Ok(device_info.path().to_string_lossy().to_string()),
             Err(error) => Err(DeviceError::HidError(error)),
         }
     }

@@ -1,5 +1,7 @@
 use std::future::Future;
+use std::str::FromStr;
 
+use litra::DeviceType;
 use rmcp::{
     handler::server::{router::tool::ToolRouter, tool::Parameters},
     model::*,
@@ -15,21 +17,44 @@ use crate::{
     handle_toggle_command, CliError, CliResult,
 };
 
+// Helper function to convert string to DeviceType
+fn parse_device_type(device_type_str: Option<&String>) -> Option<DeviceType> {
+    device_type_str.and_then(|s| DeviceType::from_str(s).ok())
+}
+
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct LitraToolParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
     pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+    /// The device type to target: "litra_glow", "litra_beam", or "litra_beam_lx" (optional)
+    pub device_type: Option<String>,
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct LitraBrightnessParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
     pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+    /// The device type to target: "litra_glow", "litra_beam", or "litra_beam_lx" (optional)
+    pub device_type: Option<String>,
+    /// The brightness value to set in lumens (use either this or percentage, not both)
     pub value: Option<u16>,
+    /// The brightness as a percentage of maximum brightness (use either this or value, not both)
     pub percentage: Option<u8>,
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
 pub struct LitraTemperatureParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
     pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+    /// The device type to target: "litra_glow", "litra_beam", or "litra_beam_lx" (optional)
+    pub device_type: Option<String>,
+    /// The temperature value in Kelvin (must be a multiple of 100 between 2700K and 6500K)
     pub value: u16,
 }
 
@@ -46,136 +71,187 @@ impl LitraMcpServer {
         }
     }
 
-    #[tool(description = "Turn your Logitech Litra device on")]
+    #[tool(
+        description = "Turn Logitech Litra device(s) on. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_on(
         &self,
         Parameters(params): Parameters<LitraToolParams>,
     ) -> Result<CallToolResult, McpError> {
-        match handle_on_command(params.serial_number.as_deref()) {
+        match handle_on_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+        ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Device turned on successfully",
+                "Device(s) turned on successfully",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Turn your Logitech Litra device off")]
+    #[tool(
+        description = "Turn Logitech Litra device(s) off. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_off(
         &self,
         Parameters(params): Parameters<LitraToolParams>,
     ) -> Result<CallToolResult, McpError> {
-        match handle_off_command(params.serial_number.as_deref()) {
+        match handle_off_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+        ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Device turned off successfully",
+                "Device(s) turned off successfully",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Toggle your Logitech Litra device on or off")]
+    #[tool(
+        description = "Toggle Logitech Litra device(s) on or off. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_toggle(
         &self,
         Parameters(params): Parameters<LitraToolParams>,
     ) -> Result<CallToolResult, McpError> {
-        match handle_toggle_command(params.serial_number.as_deref()) {
+        match handle_toggle_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+        ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Device toggled successfully",
+                "Device(s) toggled successfully",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Set the brightness of your Logitech Litra device")]
+    #[tool(
+        description = "Set the brightness of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_brightness(
         &self,
         Parameters(params): Parameters<LitraBrightnessParams>,
     ) -> Result<CallToolResult, McpError> {
         match handle_brightness_command(
             params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
             params.value,
             params.percentage,
         ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Brightness set successfully",
+                "Brightness set successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Increase the brightness of your Logitech Litra device")]
+    #[tool(
+        description = "Increase the brightness of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_brightness_up(
         &self,
         Parameters(params): Parameters<LitraBrightnessParams>,
     ) -> Result<CallToolResult, McpError> {
         match handle_brightness_up_command(
             params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
             params.value,
             params.percentage,
         ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Brightness increased successfully",
+                "Brightness increased successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Decrease the brightness of your Logitech Litra device")]
+    #[tool(
+        description = "Decrease the brightness of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_brightness_down(
         &self,
         Parameters(params): Parameters<LitraBrightnessParams>,
     ) -> Result<CallToolResult, McpError> {
         match handle_brightness_down_command(
             params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
             params.value,
             params.percentage,
         ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Brightness decreased successfully",
+                "Brightness decreased successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Set the temperature of your Logitech Litra device")]
+    #[tool(
+        description = "Set the temperature of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_temperature(
         &self,
         Parameters(params): Parameters<LitraTemperatureParams>,
     ) -> Result<CallToolResult, McpError> {
-        match handle_temperature_command(params.serial_number.as_deref(), params.value) {
+        match handle_temperature_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+            params.value,
+        ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Temperature set successfully",
+                "Temperature set successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Increase the temperature of your Logitech Litra device")]
+    #[tool(
+        description = "Increase the temperature of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_temperature_up(
         &self,
         Parameters(params): Parameters<LitraTemperatureParams>,
     ) -> Result<CallToolResult, McpError> {
-        match handle_temperature_up_command(params.serial_number.as_deref(), params.value) {
+        match handle_temperature_up_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+            params.value,
+        ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Temperature increased successfully",
+                "Temperature increased successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "Decrease the temperature of your Logitech Litra device")]
+    #[tool(
+        description = "Decrease the temperature of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type."
+    )]
     async fn litra_temperature_down(
         &self,
         Parameters(params): Parameters<LitraTemperatureParams>,
     ) -> Result<CallToolResult, McpError> {
-        match handle_temperature_down_command(params.serial_number.as_deref(), params.value) {
+        match handle_temperature_down_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+            params.value,
+        ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
-                "Temperature decreased successfully",
+                "Temperature decreased successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }
     }
 
-    #[tool(description = "List Logitech Litra devices connected to your computer")]
+    #[tool(description = "List Logitech Litra devices connected to computer")]
     async fn litra_devices(&self) -> Result<CallToolResult, McpError> {
         let litra_devices =
             get_connected_devices().map_err(|e| McpError::internal_error(e.to_string(), None))?;
@@ -190,12 +266,10 @@ impl LitraMcpServer {
 impl ServerHandler for LitraMcpServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
-            protocol_version: ProtocolVersion::V_2024_11_05,
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
+            protocol_version: ProtocolVersion::V_2025_03_26,
+            capabilities: ServerCapabilities::builder().enable_tools().build(),
             server_info: Implementation::from_build_env(),
-            instructions: Some("This server provides tools to control Logitech Litra light devices. You can turn devices on/off, adjust brightness and temperature, and list connected devices. Most tools accept an optional serial_number parameter to target a specific device.".to_string()),
+            instructions: None,
         }
     }
 }
