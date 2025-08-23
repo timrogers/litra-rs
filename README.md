@@ -72,17 +72,11 @@ The following commands are available for controlling your devices:
 - `litra temperature-up`: Increases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 - `litra temperature-down`: Decreases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 
-All of these commands support the following device targeting options:
+By default, these commands target all connected Litra devices, but this can be filtered down using one of the following device targeting options:
 
 - `--serial-number`/`-s`: Specify the device to target by its serial number
 - `--device-path`/`-p`: Specify the device path to target (useful when devices don't have serial numbers)
-- `--device-type`/`-t`: Specify the type of device to target (`LitraGlow`, `LitraBeam`, or `LitraBeamLX`)
-
-Important usage notes:
-
-- You can use only one of these options at a time.
-- If you don't specify any targeting option, the command will apply to all connected devices.
-- The device-type filter accepts both the full name (e.g., "LitraGlow") and shortened names (e.g., "Glow") in a case-insensitive manner.
+- `--device-type`/`-t`: Specify the type of device to target (`glow`, `beam`, or `beam_lx`)
 
 The following commands are also included:
 
