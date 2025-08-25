@@ -45,7 +45,7 @@ jobs:
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
         if: runner.os == 'Linux'
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Use Rust 1.89.0 with target ${{ matrix.job.target }}
         run: rustup override set 1.89.0-${{ matrix.job.target }}
       - uses: Swatinem/rust-cache@v2
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Use Rust 1.89.0
@@ -211,7 +211,7 @@ jobs:
       - cargo_publish_dry_run
     if: startsWith(github.event.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install libudev-dev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Use Rust 1.89.0 with target ${{ matrix.job.target }}
