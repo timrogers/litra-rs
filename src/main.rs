@@ -276,6 +276,86 @@ enum Commands {
         )]
         value: u16,
     },
+    Colors {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        device_type: Option<DeviceType>,
+        #[clap(
+            long,
+            short,
+            help = "The color to set in a RGB hex value (e.g. ff0000 for red)."
+        )]
+        value: String,
+        #[clap(
+            help = "The zone 1-8 from left to right. If the zone_id is not specified, it will be set to all zones."
+        )]
+        zone_id: Option<u8>,
+    },
+    ColorsBrightness {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        device_type: Option<DeviceType>,
+        #[clap(
+            long,
+            short,
+            help = "The brightness (0-100) to set on the colorful side."
+        )]
+        value: u8,
+    },
+    ColorsOff {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        device_type: Option<DeviceType>,
+    },
+    ColorsOn {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        device_type: Option<DeviceType>,
+    },
     /// List Logitech Litra devices connected to your computer
     Devices {
         #[clap(long, short, action, help = "Return the results in JSON format")]
@@ -836,6 +916,88 @@ fn handle_temperature_down_command(
     })
 }
 
+fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
+    let hex = hex.trim_start_matches('#');
+
+    if hex.len() != 6 {
+        return Err("hex color must be exactly 6 characters long".into());
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16)
+        .map_err(|_| "failed to parse red component")?;
+    let g = u8::from_str_radix(&hex[2..4], 16)
+        .map_err(|_| "failed to parse green component")?;
+    let b = u8::from_str_radix(&hex[4..6], 16)
+        .map_err(|_| "failed to parse blue component")?;
+
+    Ok((r, g, b))
+}
+
+fn handle_colors_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    device_type: Option<&DeviceType>,
+    hex: &str,
+    zone_id: Option<u8>,
+) -> CliResult {
+    with_device(serial_number, device_path, device_type, |device_handle| {
+        match hex_to_rgb(hex) {
+            Ok((r, g, b)) => {
+                match zone_id {
+                    None => {
+                        for i in 1..8 {
+                            let x = device_handle.set_color(i, r, g, b);
+                            if x.is_err() {
+                                return x
+                            }
+                        }
+                        device_handle.set_color_finish()
+                    }
+                    Some(id) => {
+                        let x = device_handle.set_color(id, r, g, b);
+                        if x.is_err() {
+                            return x
+                        }
+                        device_handle.set_color_finish()
+                    }
+                }
+            }
+            Err(error) => Err(DeviceError::InvalidColor(error)),
+        }
+    })
+}
+
+fn handle_colors_brightness_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    device_type: Option<&DeviceType>,
+    brightness: u8,
+) -> CliResult {
+    with_device(serial_number, device_path, device_type, |device_handle| {
+        device_handle.set_color_brightness(brightness)
+    })
+}
+
+fn handle_colors_off_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    device_type: Option<&DeviceType>,
+) -> CliResult {
+    with_device(serial_number, device_path, device_type, |device_handle| {
+        device_handle.set_color_switch(false)
+    })
+}
+
+fn handle_colors_on_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    device_type: Option<&DeviceType>,
+) -> CliResult {
+    with_device(serial_number, device_path, device_type, |device_handle| {
+        device_handle.set_color_switch(true)
+    })
+}
+
 #[cfg(feature = "mcp")]
 fn handle_mcp_command() -> CliResult {
     mcp::handle_mcp_command()
@@ -945,6 +1107,48 @@ fn main() -> ExitCode {
             device_path.as_deref(),
             device_type.as_ref(),
             *value,
+        ),
+        Commands::Colors {
+            serial_number,
+            device_path,
+            device_type,
+            value,
+            zone_id,
+        } => handle_colors_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            value,
+            *zone_id,
+        ),
+        Commands::ColorsBrightness {
+            serial_number,
+            device_path,
+            device_type,
+            value,
+        } => handle_colors_brightness_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+            *value,
+        ),
+        Commands::ColorsOff {
+            serial_number,
+            device_path,
+            device_type,
+        } => handle_colors_off_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
+        ),
+        Commands::ColorsOn {
+            serial_number,
+            device_path,
+            device_type,
+        } => handle_colors_on_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            device_type.as_ref(),
         ),
         #[cfg(feature = "mcp")]
         Commands::Mcp => handle_mcp_command(),
