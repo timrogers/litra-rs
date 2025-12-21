@@ -23,7 +23,7 @@ sudo apt-get update && sudo apt-get install -y libudev-dev
 The project uses a specific Rust version with required components:
 
 ```bash
-rustup override set 1.89.0
+rustup override set 1.92.0
 rustup component add clippy rustfmt
 ```
 
@@ -77,7 +77,7 @@ After building, test the binary works:
 ## Notes for AI Agents
 
 - The project requires `libudev-dev` on Linux systems before building
-- Rust toolchain is pinned to version 1.89.0 (see `rust-toolchain.toml`)
+- Rust toolchain is pinned to version 1.92.0 (see `rust-toolchain.toml`)
 - All clippy warnings must be resolved (treated as errors)
 - The project has minimal unit tests but includes doc tests
 - Pre-commit hooks are configured but not required for basic development
