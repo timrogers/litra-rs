@@ -461,7 +461,7 @@ checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
 
 [[package]]
 name = "litra"
-version = "2.4.0"
+version = "2.4.1"
 dependencies = [
  "clap",
  "hidapi",
