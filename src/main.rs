@@ -476,8 +476,9 @@ where
 }
 
 #[cfg_attr(feature = "cli", derive(Tabled))]
+#[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 #[derive(Serialize, Debug)]
-struct DeviceInfo {
+pub struct DeviceInfo {
     #[cfg_attr(feature = "cli", tabled(rename = "Type"))]
     pub device_type: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Serial Number"))]

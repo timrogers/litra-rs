@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use litra::DeviceType;
 use rmcp::{
-    handler::server::{tool::ToolRouter, wrapper::Parameters},
+    handler::server::{tool::ToolRouter, wrapper::{Json, Parameters}},
     model::*,
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
@@ -13,8 +13,15 @@ use crate::{
     get_connected_devices, handle_brightness_command, handle_brightness_down_command,
     handle_brightness_up_command, handle_off_command, handle_on_command,
     handle_temperature_command, handle_temperature_down_command, handle_temperature_up_command,
-    handle_toggle_command, CliError, CliResult,
+    handle_toggle_command, CliError, CliResult, DeviceInfo,
 };
+
+/// Wrapper struct for device list to satisfy MCP's requirement for object root type
+#[derive(serde::Serialize, schemars::JsonSchema)]
+pub struct DeviceListResponse {
+    /// List of connected Litra devices
+    pub devices: Vec<DeviceInfo>,
+}
 
 // Helper function to convert string to DeviceType
 fn parse_device_type(device_type_str: Option<&String>) -> Option<DeviceType> {
@@ -250,14 +257,15 @@ impl LitraMcpServer {
         }
     }
 
-    #[tool(description = "List Logitech Litra devices connected to computer")]
-    async fn litra_devices(&self) -> Result<CallToolResult, McpError> {
+    #[tool(
+        description = "List Logitech Litra devices connected to computer",
+        annotations(read_only_hint = true, open_world_hint = false)
+    )]
+    async fn litra_devices(&self) -> Result<Json<DeviceListResponse>, McpError> {
         let litra_devices =
             get_connected_devices().map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        let json_str = serde_json::to_string_pretty(&litra_devices)
-            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-        Ok(CallToolResult::success(vec![Content::text(json_str)]))
+        Ok(Json(DeviceListResponse { devices: litra_devices }))
     }
 }
 
