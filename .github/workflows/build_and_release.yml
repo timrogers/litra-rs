@@ -83,7 +83,7 @@ jobs:
           sign_args: "--code-signature-flags=runtime"
         if: runner.os == 'macOS'
       - name: Upload binary as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           path: litra_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
           name: litra_${{ steps.sanitise_ref.outputs.value }}_${{ matrix.job.binary_name }}
@@ -133,7 +133,7 @@ jobs:
           sign: true
           sign_args: "--code-signature-flags=runtime"
       - name: Upload binary as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           path: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
