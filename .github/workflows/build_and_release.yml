@@ -17,7 +17,7 @@ jobs:
           - {
               target: aarch64-unknown-linux-gnu,
               binary_name: linux-aarch64,
-              runs_on: self-hosted,
+              runs_on: ubuntu-24.04-arm,
             }
           - {
               target: x86_64-apple-darwin,
