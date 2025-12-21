@@ -1,9 +1,8 @@
-use std::future::Future;
 use std::str::FromStr;
 
 use litra::DeviceType;
 use rmcp::{
-    handler::server::{router::tool::ToolRouter, tool::Parameters},
+    handler::server::{tool::ToolRouter, wrapper::Parameters},
     model::*,
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
