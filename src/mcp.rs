@@ -325,7 +325,13 @@ impl ServerHandler for LitraMcpServer {
         ServerInfo {
             protocol_version: ProtocolVersion::V_2025_03_26,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
-            server_info: Implementation::from_build_env(),
+            server_info: Implementation {
+                name: env!("CARGO_PKG_NAME").to_owned(),
+                title: Some("Litra".to_owned()),
+                version: env!("CARGO_PKG_VERSION").to_owned(),
+                icons: None,
+                website_url: Some("https://github.com/timrogers/litra-rs".to_owned()),
+            },
             instructions: None,
         }
     }
