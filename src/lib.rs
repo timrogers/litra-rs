@@ -352,7 +352,7 @@ impl DeviceHandle {
     pub fn set_temperature_in_kelvin(&self, temperature_in_kelvin: u16) -> DeviceResult<()> {
         if temperature_in_kelvin < self.minimum_temperature_in_kelvin()
             || temperature_in_kelvin > self.maximum_temperature_in_kelvin()
-            || (temperature_in_kelvin % 100) != 0
+            || !temperature_in_kelvin.is_multiple_of(100)
         {
             return Err(DeviceError::InvalidTemperature(temperature_in_kelvin));
         }
