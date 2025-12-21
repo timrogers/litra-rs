@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use litra::DeviceType;
 use rmcp::{
-    handler::server::{tool::ToolRouter, wrapper::{Json, Parameters}},
+    handler::server::{
+        tool::ToolRouter,
+        wrapper::{Json, Parameters},
+    },
     model::*,
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
@@ -79,7 +82,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Turn Logitech Litra device(s) on. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = true, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     async fn litra_on(
         &self,
@@ -99,7 +106,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Turn Logitech Litra device(s) off. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = true, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     async fn litra_off(
         &self,
@@ -119,7 +130,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Toggle Logitech Litra device(s) on or off. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = false, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn litra_toggle(
         &self,
@@ -139,7 +154,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Set the brightness of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = true, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     async fn litra_brightness(
         &self,
@@ -161,7 +180,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Increase the brightness of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = false, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn litra_brightness_up(
         &self,
@@ -183,7 +206,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Decrease the brightness of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = false, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn litra_brightness_down(
         &self,
@@ -205,7 +232,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Set the temperature of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = true, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     async fn litra_temperature(
         &self,
@@ -226,7 +257,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Increase the temperature of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = false, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn litra_temperature_up(
         &self,
@@ -247,7 +282,11 @@ impl LitraMcpServer {
 
     #[tool(
         description = "Decrease the temperature of Logitech Litra device(s). By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
-        annotations(destructive_hint = false, idempotent_hint = false, open_world_hint = false)
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     async fn litra_temperature_down(
         &self,
@@ -274,7 +313,9 @@ impl LitraMcpServer {
         let litra_devices =
             get_connected_devices().map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
-        Ok(Json(DeviceListResponse { devices: litra_devices }))
+        Ok(Json(DeviceListResponse {
+            devices: litra_devices,
+        }))
     }
 }
 
