@@ -626,9 +626,9 @@ fn generate_set_color(zone_id: u8, red: u8, green: u8, blue: u8) -> [u8; 20] {
 }
 
 fn generate_set_color_brightness(brightness: u8) -> [u8; 20] {
-    [0x11, 0xff, 0x0a, 0x2b, 0x00, brightness, 0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    [0x11, 0xff, 0x0a, 0x2b, 0x00, brightness, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 }
 
 fn generate_set_color_switch(on: bool) -> [u8; 20] {
-    [0x11, 0xff, 0x0a, 0x4b, if on { 1 } else { 0 }, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    [0x11, 0xff, 0x0a, 0x4b, if on { 1 } else { 0 }, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 }
