@@ -400,6 +400,14 @@ fn get_is_on_emoji(is_on: bool) -> &'static str {
     }
 }
 
+fn get_is_back_on_emoji(is_on: bool) -> &'static str {
+    if is_on {
+        "🌈"
+    } else {
+        "🌑"
+    }
+}
+
 fn check_device_filters<'a>(
     _context: &'a Litra,
     _serial_number: Option<&'a str>,
@@ -594,6 +602,10 @@ pub struct DeviceInfo {
     pub brightness_display: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Temperature (K)"))]
     pub temperature_display: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Back Status"))]
+    pub back_status_display: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Back Brightness (%)"))]
+    pub back_brightness_display: String,
     // Keep original fields for JSON output
     #[cfg_attr(feature = "cli", tabled(skip))]
     pub is_on: bool,
@@ -609,6 +621,10 @@ pub struct DeviceInfo {
     pub minimum_temperature_in_kelvin: u16,
     #[cfg_attr(feature = "cli", tabled(skip))]
     pub maximum_temperature_in_kelvin: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub is_back_on: Option<bool>,
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub back_brightness_percentage: Option<u8>,
 }
 
 fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
@@ -656,6 +672,26 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                 }
             };
 
+            // Get back light status for Litra Beam LX devices
+            let (is_back_on, back_brightness_percentage, back_status_display, back_brightness_display) = if device
+                .device_type()
+                == DeviceType::LitraBeamLX
+            {
+                let back_on = device_handle.is_back_on().ok();
+                let back_brightness = device_handle.back_brightness_percentage().ok();
+                let status_display = match back_on {
+                    Some(on) => format!("{} {}", get_is_on_text(on), get_is_back_on_emoji(on)),
+                    None => "Unknown".to_string(),
+                };
+                let brightness_display = match back_brightness {
+                    Some(b) => format!("{}%", b),
+                    None => "Unknown".to_string(),
+                };
+                (back_on, back_brightness, status_display, brightness_display)
+            } else {
+                (None, None, "N/A".to_string(), "N/A".to_string())
+            };
+
             Some(DeviceInfo {
                 device_type: device.device_type().to_string(),
                 serial_number: serial,
@@ -671,6 +707,8 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                     temperature,
                     device_handle.maximum_temperature_in_kelvin()
                 ),
+                back_status_display,
+                back_brightness_display,
                 // Keep original fields for JSON output
                 is_on,
                 brightness_in_lumen: brightness,
@@ -679,6 +717,8 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                 maximum_brightness_in_lumen: device_handle.maximum_brightness_in_lumen(),
                 minimum_temperature_in_kelvin: device_handle.minimum_temperature_in_kelvin(),
                 maximum_temperature_in_kelvin: device_handle.maximum_temperature_in_kelvin(),
+                is_back_on,
+                back_brightness_percentage,
             })
         })
         .collect();
