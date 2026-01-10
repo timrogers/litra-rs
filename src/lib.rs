@@ -390,7 +390,7 @@ impl DeviceHandle {
         }
 
         // The device is divided in 8 sections
-        if zone_id > 8
+        if zone_id == 0 || zone_id > 8
         {
             return Err(DeviceError::InvalidZone(zone_id));
         }
