@@ -15,8 +15,8 @@ keywords = ["logitech", "litra", "glow", "beam", "light"]
 [dependencies]
 hidapi = "2.6.3"
 clap = { version = "4.5.53", features = ["derive"], optional = true }
-serde = { version = "1.0.219", features = ["derive"], optional = true }
-serde_json = { version = "1.0.145", optional = true }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = { version = "1.0.145" }
 tabled = { version = "0.20", optional = true }
 rmcp = { version = "0.12.0", features = ["server", "transport-io", "macros"], optional = true }
 tokio = { version = "1.47", features = ["rt", "rt-multi-thread", "macros"], optional = true }
@@ -26,7 +26,7 @@ schemars = { version = "1.0", features = ["derive"], optional = true }
 
 [features]
 default = ["cli", "mcp"]
-cli = ["dep:clap", "dep:serde", "dep:serde_json", "dep:tabled"]
+cli = ["dep:clap", "dep:tabled"]
 mcp = ["cli", "dep:rmcp", "dep:tokio", "dep:tracing", "dep:tracing-subscriber", "dep:schemars"]
 
 [[bin]]
