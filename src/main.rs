@@ -358,6 +358,65 @@ enum Commands {
         )]
         device_path: Option<String>,
     },
+    /// Toggles the colorful backlight on your Logitech Litra Beam LX device on or off. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackToggle {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+    },
+    /// Increases the brightness of the colorful backlight on your Logitech Litra Beam LX device. The command will error if trying to increase the brightness beyond 100%. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackBrightnessUp {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(
+            long,
+            short('b'),
+            help = "The number of percentage points to increase the brightness by",
+            value_parser = clap::value_parser!(u8).range(1..=100)
+        )]
+        percentage: u8,
+    },
+    /// Decreases the brightness of the colorful backlight on your Logitech Litra Beam LX device. The command will error if trying to decrease the brightness below 1%. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackBrightnessDown {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(
+            long,
+            short('b'),
+            help = "The number of percentage points to decrease the brightness by",
+            value_parser = clap::value_parser!(u8).range(1..=100)
+        )]
+        percentage: u8,
+    },
     /// List Logitech Litra devices connected to your computer
     Devices {
         #[clap(long, short, action, help = "Return the results in JSON format")]
@@ -395,6 +454,14 @@ fn get_is_on_text(is_on: bool) -> &'static str {
 fn get_is_on_emoji(is_on: bool) -> &'static str {
     if is_on {
         "💡"
+    } else {
+        "🌑"
+    }
+}
+
+fn get_is_back_on_emoji(is_on: bool) -> &'static str {
+    if is_on {
+        "🌈"
     } else {
         "🌑"
     }
@@ -582,18 +649,26 @@ fn is_user_input_error(error: &DeviceError) -> bool {
 #[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 #[derive(Serialize, Debug)]
 pub struct DeviceInfo {
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub device_type: DeviceType,
     #[cfg_attr(feature = "cli", tabled(rename = "Type"))]
-    pub device_type: String,
+    pub device_type_display: String,
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub has_back_side: bool,
     #[cfg_attr(feature = "cli", tabled(rename = "Serial Number"))]
     pub serial_number: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Device Path"))]
     pub device_path: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Status"))]
-    pub status: String,
+    pub status_display: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Brightness (lm)"))]
     pub brightness_display: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Temperature (K)"))]
     pub temperature_display: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Back Status"))]
+    pub back_status_display: String,
+    #[cfg_attr(feature = "cli", tabled(rename = "Back Brightness (%)"))]
+    pub back_brightness_display: String,
     // Keep original fields for JSON output
     #[cfg_attr(feature = "cli", tabled(skip))]
     pub is_on: bool,
@@ -609,6 +684,10 @@ pub struct DeviceInfo {
     pub minimum_temperature_in_kelvin: u16,
     #[cfg_attr(feature = "cli", tabled(skip))]
     pub maximum_temperature_in_kelvin: u16,
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub is_back_on: Option<bool>,
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub back_brightness_percentage: Option<u8>,
 }
 
 fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
@@ -656,11 +735,35 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                 }
             };
 
+            // Get back light status for Litra Beam LX devices
+            let (
+                is_back_on,
+                back_brightness_percentage,
+                back_status_display,
+                back_brightness_display,
+            ) = if device.device_type() == DeviceType::LitraBeamLX {
+                let back_on = device_handle.is_back_on().ok();
+                let back_brightness = device_handle.back_brightness_percentage().ok();
+                let status_display = match back_on {
+                    Some(on) => format!("{} {}", get_is_on_text(on), get_is_back_on_emoji(on)),
+                    None => "Unknown".to_string(),
+                };
+                let brightness_display = match back_brightness {
+                    Some(b) => format!("{}%", b),
+                    None => "Unknown".to_string(),
+                };
+                (back_on, back_brightness, status_display, brightness_display)
+            } else {
+                (None, None, "N/A".to_string(), "N/A".to_string())
+            };
+
             Some(DeviceInfo {
-                device_type: device.device_type().to_string(),
+                device_type: device.device_type(),
+                device_type_display: device.device_type().to_string(),
+                has_back_side: device.device_type().has_back_side(),
                 serial_number: serial,
                 device_path,
-                status: format!("{} {}", get_is_on_text(is_on), get_is_on_emoji(is_on)),
+                status_display: format!("{} {}", get_is_on_text(is_on), get_is_on_emoji(is_on)),
                 brightness_display: format!(
                     "{}/{}",
                     brightness,
@@ -671,6 +774,8 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                     temperature,
                     device_handle.maximum_temperature_in_kelvin()
                 ),
+                back_status_display,
+                back_brightness_display,
                 // Keep original fields for JSON output
                 is_on,
                 brightness_in_lumen: brightness,
@@ -679,6 +784,8 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
                 maximum_brightness_in_lumen: device_handle.maximum_brightness_in_lumen(),
                 minimum_temperature_in_kelvin: device_handle.minimum_temperature_in_kelvin(),
                 maximum_temperature_in_kelvin: device_handle.maximum_temperature_in_kelvin(),
+                is_back_on,
+                back_brightness_percentage,
             })
         })
         .collect();
@@ -1016,6 +1123,87 @@ fn handle_back_on_command(serial_number: Option<&str>, device_path: Option<&str>
     )
 }
 
+fn handle_back_toggle_command(serial_number: Option<&str>, device_path: Option<&str>) -> CliResult {
+    // Get context to work with devices
+    let context = Litra::new()?;
+
+    // Get all matched devices (only Litra Beam LX supports back light)
+    let devices = get_all_supported_devices(
+        &context,
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+    )?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
+    }
+
+    // Toggle each device individually
+    for device_handle in devices {
+        // Toggle each device individually, ignoring errors
+        if let Ok(is_on) = device_handle.is_back_on() {
+            let _ = device_handle.set_back_on(!is_on);
+        }
+    }
+    Ok(())
+}
+
+fn handle_back_brightness_up_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    percentage: u8,
+) -> CliResult {
+    // Get context to work with devices
+    let context = Litra::new()?;
+
+    // Get all matched devices (only Litra Beam LX supports back light)
+    let devices = get_all_supported_devices(
+        &context,
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+    )?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
+    }
+
+    for device_handle in devices {
+        if let Ok(current_brightness) = device_handle.back_brightness_percentage() {
+            let new_brightness = current_brightness.saturating_add(percentage).min(100);
+            let _ = device_handle.set_back_brightness_percentage(new_brightness);
+        }
+    }
+    Ok(())
+}
+
+fn handle_back_brightness_down_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    percentage: u8,
+) -> CliResult {
+    // Get context to work with devices
+    let context = Litra::new()?;
+
+    // Get all matched devices (only Litra Beam LX supports back light)
+    let devices = get_all_supported_devices(
+        &context,
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+    )?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
+    }
+
+    for device_handle in devices {
+        if let Ok(current_brightness) = device_handle.back_brightness_percentage() {
+            let new_brightness = current_brightness.saturating_sub(percentage).max(1);
+            let _ = device_handle.set_back_brightness_percentage(new_brightness);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(feature = "mcp")]
 fn handle_mcp_command() -> CliResult {
     mcp::handle_mcp_command()
@@ -1154,6 +1342,28 @@ fn main() -> ExitCode {
             serial_number,
             device_path,
         } => handle_back_on_command(serial_number.as_deref(), device_path.as_deref()),
+        Commands::BackToggle {
+            serial_number,
+            device_path,
+        } => handle_back_toggle_command(serial_number.as_deref(), device_path.as_deref()),
+        Commands::BackBrightnessUp {
+            serial_number,
+            device_path,
+            percentage,
+        } => handle_back_brightness_up_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            *percentage,
+        ),
+        Commands::BackBrightnessDown {
+            serial_number,
+            device_path,
+            percentage,
+        } => handle_back_brightness_down_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            *percentage,
+        ),
         #[cfg(feature = "mcp")]
         Commands::Mcp => handle_mcp_command(),
     };

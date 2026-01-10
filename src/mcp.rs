@@ -13,10 +13,12 @@ use rmcp::{
 };
 
 use crate::{
-    get_connected_devices, handle_brightness_command, handle_brightness_down_command,
-    handle_brightness_up_command, handle_off_command, handle_on_command,
-    handle_temperature_command, handle_temperature_down_command, handle_temperature_up_command,
-    handle_toggle_command, CliError, CliResult, DeviceInfo,
+    get_connected_devices, handle_back_brightness_command, handle_back_brightness_down_command,
+    handle_back_brightness_up_command, handle_back_color_command, handle_back_off_command,
+    handle_back_on_command, handle_back_toggle_command, handle_brightness_command,
+    handle_brightness_down_command, handle_brightness_up_command, handle_off_command,
+    handle_on_command, handle_temperature_command, handle_temperature_down_command,
+    handle_temperature_up_command, handle_toggle_command, CliError, CliResult, DeviceInfo,
 };
 
 /// Wrapper struct for device list to satisfy MCP's requirement for object root type
@@ -65,6 +67,36 @@ pub struct LitraTemperatureParams {
     pub device_type: Option<String>,
     /// The temperature value in Kelvin (must be a multiple of 100 between 2700K and 6500K)
     pub value: u16,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct LitraBackToolParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
+    pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct LitraBackBrightnessParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
+    pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+    /// The brightness as a percentage (1-100)
+    pub percentage: u8,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct LitraBackColorParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
+    pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+    /// The color in hex format (e.g., "#FF0000" for red)
+    pub hex: String,
+    /// The zone ID to target (1-7, optional - if not specified, all zones are targeted)
+    pub zone_id: Option<u8>,
 }
 
 #[derive(Clone)]
@@ -300,6 +332,172 @@ impl LitraMcpServer {
         ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
                 "Temperature decreased successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Turn the back light of Logitech Litra Beam LX device(s) on. By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_on(
+        &self,
+        Parameters(params): Parameters<LitraBackToolParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_on_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light turned on successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Turn the back light of Logitech Litra Beam LX device(s) off. By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_off(
+        &self,
+        Parameters(params): Parameters<LitraBackToolParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_off_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light turned off successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Toggle the back light of Logitech Litra Beam LX device(s) on or off. By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_toggle(
+        &self,
+        Parameters(params): Parameters<LitraBackToolParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_toggle_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light toggled successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Set the brightness of the back light on Logitech Litra Beam LX device(s). By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_brightness(
+        &self,
+        Parameters(params): Parameters<LitraBackBrightnessParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_brightness_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            params.percentage,
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light brightness set successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Increase the brightness of the back light on Logitech Litra Beam LX device(s). By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_brightness_up(
+        &self,
+        Parameters(params): Parameters<LitraBackBrightnessParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_brightness_up_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            params.percentage,
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light brightness increased successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Decrease the brightness of the back light on Logitech Litra Beam LX device(s). By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_brightness_down(
+        &self,
+        Parameters(params): Parameters<LitraBackBrightnessParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_brightness_down_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            params.percentage,
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light brightness decreased successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Set the color of the back light on Logitech Litra Beam LX device(s). By default, all Litra Beam LX devices will be targeted, but you can optionally specify a serial number or device path. Can target a specific zone (1-7) or all zones.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_back_color(
+        &self,
+        Parameters(params): Parameters<LitraBackColorParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_back_color_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            &params.hex,
+            params.zone_id,
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Back light color set successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }

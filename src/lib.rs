@@ -76,21 +76,32 @@ impl Litra {
 }
 
 /// The model of the device.
-#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize, serde::Serialize)]
 #[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 pub enum DeviceType {
     /// Logitech [Litra Glow][glow] streaming light with TrueSoft.
     ///
     /// [glow]: https://www.logitech.com/products/lighting/litra-glow.html
+    #[serde(rename = "glow")]
     LitraGlow,
     /// Logitech [Litra Beam][beam] LED streaming key light with TrueSoft.
     ///
     /// [beam]: https://www.logitechg.com/products/cameras-lighting/litra-beam-streaming-light.html
+    #[serde(rename = "beam")]
     LitraBeam,
     /// Logitech [Litra Beam LX][beamlx] dual-sided RGB streaming key light.
     ///
     /// [beamlx]: https://www.logitechg.com/products/cameras-lighting/litra-beam-lx-led-light.html
+    #[serde(rename = "beam_lx")]
     LitraBeamLX,
+}
+
+impl DeviceType {
+    /// Returns true if this device type has a colorful back side (only Litra Beam LX).
+    #[must_use]
+    pub fn has_back_side(&self) -> bool {
+        *self == DeviceType::LitraBeamLX
+    }
 }
 
 impl fmt::Display for DeviceType {
@@ -445,6 +456,39 @@ impl DeviceHandle {
         self.hid_device.write(&message)?;
         Ok(())
     }
+
+    /// Queries the current power status of the colorful back side of the Litra Beam LX. Returns `true` if the back light is currently on. Only Litra Beam LX devices are supported.
+    pub fn is_back_on(&self) -> DeviceResult<bool> {
+        if self.device_type != DeviceType::LitraBeamLX {
+            return Err(DeviceError::UnsupportedDeviceType);
+        }
+        let message = generate_get_back_on_bytes();
+
+        self.hid_device.write(&message)?;
+
+        let mut response_buffer = [0x00; 20];
+        let response = self.hid_device.read(&mut response_buffer[..])?;
+
+        Ok(response_buffer[..response][4] == 1)
+    }
+
+    /// Queries the brightness of the colorful back side of the Litra Beam LX as a percentage. Only Litra Beam LX devices are supported.
+    pub fn back_brightness_percentage(&self) -> DeviceResult<u8> {
+        if self.device_type != DeviceType::LitraBeamLX {
+            return Err(DeviceError::UnsupportedDeviceType);
+        }
+        let message = generate_get_back_brightness_percentage_bytes();
+
+        self.hid_device.write(&message)?;
+
+        let mut response_buffer = [0x00; 20];
+        let response = self.hid_device.read(&mut response_buffer[..])?;
+
+        // The brightness is returned as a 16-bit value but represents a percentage
+        let brightness = u16::from(response_buffer[..response][4]) * 256
+            + u16::from(response_buffer[..response][5]);
+        Ok(brightness as u8)
+    }
 }
 
 const VENDOR_ID: u16 = 0x046d;
@@ -659,5 +703,19 @@ fn generate_set_back_on_bytes(on: bool) -> [u8; 20] {
         0,
         0,
         0,
+    ]
+}
+
+fn generate_get_back_on_bytes() -> [u8; 20] {
+    [
+        0x11, 0xff, 0x0a, 0x3b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+}
+
+fn generate_get_back_brightness_percentage_bytes() -> [u8; 20] {
+    [
+        0x11, 0xff, 0x0a, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00,
     ]
 }
