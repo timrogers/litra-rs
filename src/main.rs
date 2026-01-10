@@ -533,8 +533,13 @@ where
         }
 
         for device_handle in devices {
-            // Ignore errors for individual devices when targeting all
-            let _ = callback(&device_handle);
+            // Ignore device-specific errors (e.g. unsupported device type) but propagate
+            // validation errors (e.g. invalid brightness) since those indicate user input errors
+            if let Err(e) = callback(&device_handle) {
+                if is_user_input_error(&e) {
+                    return Err(e.into());
+                }
+            }
         }
         Ok(())
     } else {
@@ -546,11 +551,27 @@ where
 
         // Apply to all matched devices
         for device_handle in devices {
-            // Ignore errors for individual devices
-            let _ = callback(&device_handle);
+            // Ignore device-specific errors but propagate validation errors
+            if let Err(e) = callback(&device_handle) {
+                if is_user_input_error(&e) {
+                    return Err(e.into());
+                }
+            }
         }
         Ok(())
     }
+}
+
+/// Returns true if the error is caused by invalid user input and should be propagated
+fn is_user_input_error(error: &DeviceError) -> bool {
+    matches!(
+        error,
+        DeviceError::InvalidBrightness(_)
+            | DeviceError::InvalidTemperature(_)
+            | DeviceError::InvalidZone(_)
+            | DeviceError::InvalidColor(_)
+            | DeviceError::InvalidPercentage(_)
+    )
 }
 
 #[cfg_attr(feature = "cli", derive(Tabled))]

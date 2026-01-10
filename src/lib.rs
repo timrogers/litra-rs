@@ -126,6 +126,8 @@ pub enum DeviceError {
     InvalidBrightness(u16),
     /// Tried to set an invalid temperature value.
     InvalidTemperature(u16),
+    /// Tried to set an invalid percentage value.
+    InvalidPercentage(u8),
     /// A [`hidapi`] operation failed.
     HidError(HidError),
     /// Tried to parse an unsupported device type.
@@ -158,6 +160,13 @@ impl fmt::Display for DeviceError {
                 "Back color {} is not valid. Only hexadecimal colors are allowed.",
                 str
             ),
+            DeviceError::InvalidPercentage(value) => {
+                write!(
+                    f,
+                    "Percentage {}% is not valid. Only values between 0 and 100 are allowed.",
+                    value
+                )
+            }
         }
     }
 }
@@ -416,7 +425,7 @@ impl DeviceHandle {
             return Err(DeviceError::UnsupportedDeviceType);
         }
         if brightness == 0 || brightness > 100 {
-            return Err(DeviceError::InvalidBrightness(brightness.into()));
+            return Err(DeviceError::InvalidPercentage(brightness));
         }
 
         let message = generate_set_back_brightness_percentage_bytes(brightness);
