@@ -923,12 +923,9 @@ fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
         return Err("hex color must be exactly 6 characters long".into());
     }
 
-    let r = u8::from_str_radix(&hex[0..2], 16)
-        .map_err(|_| "failed to parse red component")?;
-    let g = u8::from_str_radix(&hex[2..4], 16)
-        .map_err(|_| "failed to parse green component")?;
-    let b = u8::from_str_radix(&hex[4..6], 16)
-        .map_err(|_| "failed to parse blue component")?;
+    let r = u8::from_str_radix(&hex[0..2], 16).map_err(|_| "failed to parse red component")?;
+    let g = u8::from_str_radix(&hex[2..4], 16).map_err(|_| "failed to parse green component")?;
+    let b = u8::from_str_radix(&hex[4..6], 16).map_err(|_| "failed to parse blue component")?;
 
     Ok((r, g, b))
 }
@@ -940,25 +937,26 @@ fn handle_colors_command(
     hex: &str,
     zone_id: Option<u8>,
 ) -> CliResult {
-    with_device(serial_number, device_path, device_type, |device_handle| {
-        match hex_to_rgb(hex) {
-            Ok((r, g, b)) => {
-                match zone_id {
-                    None => {
-                        for i in 1..=8 {
-                            device_handle.set_color(i, r, g, b)?;
-                        }
-                        device_handle.set_color_finish()
+    with_device(
+        serial_number,
+        device_path,
+        device_type,
+        |device_handle| match hex_to_rgb(hex) {
+            Ok((r, g, b)) => match zone_id {
+                None => {
+                    for i in 1..=8 {
+                        device_handle.set_color(i, r, g, b)?;
                     }
-                    Some(id) => {
-                        device_handle.set_color(id, r, g, b)?;
-                        device_handle.set_color_finish()
-                    }
+                    device_handle.set_color_finish()
                 }
-            }
+                Some(id) => {
+                    device_handle.set_color(id, r, g, b)?;
+                    device_handle.set_color_finish()
+                }
+            },
             Err(error) => Err(DeviceError::InvalidColor(error)),
-        }
-    })
+        },
+    )
 }
 
 fn handle_colors_brightness_command(
