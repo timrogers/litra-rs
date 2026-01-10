@@ -358,6 +358,65 @@ enum Commands {
         )]
         device_path: Option<String>,
     },
+    /// Toggles the colorful backlight on your Logitech Litra Beam LX device on or off. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackToggle {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+    },
+    /// Increases the brightness of the colorful backlight on your Logitech Litra Beam LX device. The command will error if trying to increase the brightness beyond 100%. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackBrightnessUp {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(
+            long,
+            short('b'),
+            help = "The number of percentage points to increase the brightness by",
+            value_parser = clap::value_parser!(u8).range(1..=100)
+        )]
+        percentage: u8,
+    },
+    /// Decreases the brightness of the colorful backlight on your Logitech Litra Beam LX device. The command will error if trying to decrease the brightness below 1%. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackBrightnessDown {
+        #[clap(
+            long,
+            short,
+            help = SERIAL_NUMBER_ARGUMENT_HELP
+        )]
+        serial_number: Option<String>,
+        #[clap(
+            long,
+            short('p'),
+            help = DEVICE_PATH_ARGUMENT_HELP
+        )]
+        device_path: Option<String>,
+        #[clap(
+            long,
+            short('b'),
+            help = "The number of percentage points to decrease the brightness by",
+            value_parser = clap::value_parser!(u8).range(1..=100)
+        )]
+        percentage: u8,
+    },
     /// List Logitech Litra devices connected to your computer
     Devices {
         #[clap(long, short, action, help = "Return the results in JSON format")]
@@ -1056,6 +1115,87 @@ fn handle_back_on_command(serial_number: Option<&str>, device_path: Option<&str>
     )
 }
 
+fn handle_back_toggle_command(serial_number: Option<&str>, device_path: Option<&str>) -> CliResult {
+    // Get context to work with devices
+    let context = Litra::new()?;
+
+    // Get all matched devices (only Litra Beam LX supports back light)
+    let devices = get_all_supported_devices(
+        &context,
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+    )?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
+    }
+
+    // Toggle each device individually
+    for device_handle in devices {
+        // Toggle each device individually, ignoring errors
+        if let Ok(is_on) = device_handle.is_back_on() {
+            let _ = device_handle.set_back_on(!is_on);
+        }
+    }
+    Ok(())
+}
+
+fn handle_back_brightness_up_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    percentage: u8,
+) -> CliResult {
+    // Get context to work with devices
+    let context = Litra::new()?;
+
+    // Get all matched devices (only Litra Beam LX supports back light)
+    let devices = get_all_supported_devices(
+        &context,
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+    )?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
+    }
+
+    for device_handle in devices {
+        if let Ok(current_brightness) = device_handle.back_brightness_percentage() {
+            let new_brightness = current_brightness.saturating_add(percentage).min(100);
+            let _ = device_handle.set_back_brightness_percentage(new_brightness);
+        }
+    }
+    Ok(())
+}
+
+fn handle_back_brightness_down_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    percentage: u8,
+) -> CliResult {
+    // Get context to work with devices
+    let context = Litra::new()?;
+
+    // Get all matched devices (only Litra Beam LX supports back light)
+    let devices = get_all_supported_devices(
+        &context,
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+    )?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
+    }
+
+    for device_handle in devices {
+        if let Ok(current_brightness) = device_handle.back_brightness_percentage() {
+            let new_brightness = current_brightness.saturating_sub(percentage).max(1);
+            let _ = device_handle.set_back_brightness_percentage(new_brightness);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(feature = "mcp")]
 fn handle_mcp_command() -> CliResult {
     mcp::handle_mcp_command()
@@ -1194,6 +1334,28 @@ fn main() -> ExitCode {
             serial_number,
             device_path,
         } => handle_back_on_command(serial_number.as_deref(), device_path.as_deref()),
+        Commands::BackToggle {
+            serial_number,
+            device_path,
+        } => handle_back_toggle_command(serial_number.as_deref(), device_path.as_deref()),
+        Commands::BackBrightnessUp {
+            serial_number,
+            device_path,
+            percentage,
+        } => handle_back_brightness_up_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            *percentage,
+        ),
+        Commands::BackBrightnessDown {
+            serial_number,
+            device_path,
+            percentage,
+        } => handle_back_brightness_down_command(
+            serial_number.as_deref(),
+            device_path.as_deref(),
+            *percentage,
+        ),
         #[cfg(feature = "mcp")]
         Commands::Mcp => handle_mcp_command(),
     };
