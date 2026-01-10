@@ -736,10 +736,12 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
             };
 
             // Get back light status for Litra Beam LX devices
-            let (is_back_on, back_brightness_percentage, back_status_display, back_brightness_display) = if device
-                .device_type()
-                == DeviceType::LitraBeamLX
-            {
+            let (
+                is_back_on,
+                back_brightness_percentage,
+                back_status_display,
+                back_brightness_display,
+            ) = if device.device_type() == DeviceType::LitraBeamLX {
                 let back_on = device_handle.is_back_on().ok();
                 let back_brightness = device_handle.back_brightness_percentage().ok();
                 let status_display = match back_on {
