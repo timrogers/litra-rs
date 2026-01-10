@@ -1,4 +1,4 @@
-use clap::{builder::TypedValueParser, ArgGroup, Parser, Subcommand};
+use clap::{builder::TypedValueParser, ArgGroup, Parser, Subcommand, ValueEnum};
 use litra::{Device, DeviceError, DeviceHandle, DeviceResult, DeviceType, Litra};
 use serde::Serialize;
 use std::fmt;
@@ -56,6 +56,40 @@ const DEVICE_PATH_ARGUMENT_HELP: &str =
     "Specify the device to target by its path (useful for devices that don't show a serial number)";
 const DEVICE_TYPE_ARGUMENT_HELP: &str =
     "Specify the device to target by its type (`glow`, `beam` or `beam_lx`)";
+
+/// Named colors for the back-color command
+#[cfg(feature = "cli")]
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum NamedColor {
+    Red,
+    Green,
+    Blue,
+    Yellow,
+    Orange,
+    Purple,
+    Pink,
+    Cyan,
+    White,
+    Magenta,
+}
+
+#[cfg(feature = "cli")]
+impl NamedColor {
+    fn to_hex(self) -> &'static str {
+        match self {
+            NamedColor::Red => "FF0000",
+            NamedColor::Green => "00FF00",
+            NamedColor::Blue => "0000FF",
+            NamedColor::Yellow => "FFFF00",
+            NamedColor::Orange => "FFA500",
+            NamedColor::Purple => "800080",
+            NamedColor::Pink => "FFC0CB",
+            NamedColor::Cyan => "00FFFF",
+            NamedColor::White => "FFFFFF",
+            NamedColor::Magenta => "FF00FF",
+        }
+    }
+}
 
 #[cfg(feature = "cli")]
 #[derive(Debug, Subcommand)]
@@ -279,7 +313,8 @@ enum Commands {
         )]
         value: u16,
     },
-    // Set the color of one or more zones on the back of your Logitech Litra Beam LX device. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    /// Set the color of one or more zones on the back of your Logitech Litra Beam LX device. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    #[clap(group = ArgGroup::new("color-input").required(true).multiple(false))]
     BackColor {
         #[clap(
             long,
@@ -296,12 +331,20 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = "The hexadecimal color code to use (e.g. FF0000 for red)."
+            help = "The hexadecimal color code to use (e.g. FF0000 for red). Either --value or --color must be specified.",
+            group = "color-input"
         )]
-        value: String,
+        value: Option<String>,
         #[clap(
             long,
             short,
+            help = "A named color to use. Either --value or --color must be specified.",
+            group = "color-input"
+        )]
+        color: Option<NamedColor>,
+        #[clap(
+            long,
+            short('z'),
             help = "The zone of the light to control, numbered 1 to 7 from left to right. If not specified, all zones will be targeted."
         )]
         zone: Option<u8>,
@@ -1318,13 +1361,21 @@ fn main() -> ExitCode {
             serial_number,
             device_path,
             value,
+            color,
             zone: zone_id,
-        } => handle_back_color_command(
-            serial_number.as_deref(),
-            device_path.as_deref(),
-            value,
-            *zone_id,
-        ),
+        } => {
+            let hex = match (value, color) {
+                (Some(v), None) => v.clone(),
+                (None, Some(c)) => c.to_hex().to_string(),
+                _ => unreachable!("clap ensures exactly one of value or color is provided"),
+            };
+            handle_back_color_command(
+                serial_number.as_deref(),
+                device_path.as_deref(),
+                &hex,
+                *zone_id,
+            )
+        }
         Commands::BackBrightness {
             serial_number,
             device_path,

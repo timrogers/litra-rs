@@ -75,7 +75,7 @@ The following commands are available for controlling your devices:
 - `litra back-brightness`: Sets the brightness of the colorful backlight on your Logitech Litra Beam LX device, using `--percentage` (as a percentage of the maximum brightness)
 - `litra back-brightness-up`: Increases the brightness of the colorful backlight on your Logitech Litra Beam LX device, using `--percentage` (with a number of percentage points to add to the backlight's brightness)
 - `litra back-brightness-down`: Decreases the brightness of the colorful backlight on your Logitech Litra Beam LX device, using `--percentage` (with a number of percentage points to subtract from the backlight's brightness)
-- `litra back-color`: Sets the color of the colorful backlight on your Logitech Litra Beam LX device, using `--value` (a hexadecimal color code, e.g. `FF0000` for red). You can optionally target a specific zone with `--zone` (numbered 1 to 7 from left to right).
+- `litra back-color`: Sets the color of the colorful backlight on your Logitech Litra Beam LX device, using `--color` (a named color) or  `--value` (a hexadecimal color code, e.g. `FF0000` for red). You can optionally target a specific zone with `--zone` (numbered 1 to 7 from left to right).
 
 By default, these commands target all connected Litra devices, but this can be filtered down using one of the following device targeting options:
 
