@@ -137,9 +137,10 @@ enum Commands {
         value: Option<u16>,
         #[clap(
             long,
-            short,
+            short('b'),
             help = "The brightness to set, as a percentage of the maximum brightness",
-            group = "brightness"
+            group = "brightness",
+            value_parser = clap::value_parser!(u8).range(1..=100)
         )]
         percentage: Option<u8>,
     },
@@ -171,7 +172,8 @@ enum Commands {
             long,
             short,
             help = "The number of percentage points to increase the brightness by",
-            group = "brightness-up"
+            group = "brightness-up",
+            value_parser = clap::value_parser!(u8).range(1..=100)
         )]
         percentage: Option<u8>,
     },
@@ -203,7 +205,8 @@ enum Commands {
             long,
             short,
             help = "The number of percentage points to reduce the brightness by",
-            group = "brightness-down"
+            group = "brightness-down",
+            value_parser = clap::value_parser!(u8).range(1..=100)
         )]
         percentage: Option<u8>,
     },
@@ -299,7 +302,7 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = "The zone of the light to control, numbered 1 to 8 from left to right. If not specified, all zones will be targeted."
+            help = "The zone of the light to control, numbered 1 to 7 from left to right. If not specified, all zones will be targeted."
         )]
         zone: Option<u8>,
     },
@@ -320,7 +323,8 @@ enum Commands {
         #[clap(
             long,
             short('b'),
-            help = "The brightness to set, as a percentage of the maximum brightness"
+            help = "The brightness to set, as a percentage of the maximum brightness",
+            value_parser = clap::value_parser!(u8).range(1..=100)
         )]
         percentage: u8,
     },
@@ -965,8 +969,9 @@ fn handle_back_color_command(
         |device_handle| match hex_to_rgb(hex) {
             Ok((r, g, b)) => match zone_id {
                 None => {
-                    for i in 1..=8 {
+                    for i in 1..=7 {
                         device_handle.set_back_color(i, r, g, b)?;
+                        std::thread::sleep(std::time::Duration::from_millis(10));
                     }
                     Ok(())
                 }

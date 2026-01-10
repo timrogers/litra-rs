@@ -152,7 +152,7 @@ impl fmt::Display for DeviceError {
             DeviceError::UnsupportedDeviceType => write!(f, "Unsupported device type"),
             DeviceError::InvalidZone(zone_id) => write!(
                 f,
-                "Back color zone {} is not valid. Only zones 1-8 are allowed.",
+                "Back color zone {} is not valid. Only zones 1-7 are allowed.",
                 zone_id
             ),
             DeviceError::InvalidColor(str) => write!(
@@ -405,8 +405,8 @@ impl DeviceHandle {
             return Err(DeviceError::UnsupportedDeviceType);
         }
 
-        // The device is divided in 8 sections
-        if zone_id == 0 || zone_id > 8 {
+        // The device is divided into 7 sections
+        if zone_id == 0 || zone_id > 7 {
             return Err(DeviceError::InvalidZone(zone_id));
         }
 
