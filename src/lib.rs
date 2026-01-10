@@ -148,8 +148,16 @@ impl fmt::Display for DeviceError {
             }
             DeviceError::HidError(error) => write!(f, "HID error occurred: {}", error),
             DeviceError::UnsupportedDeviceType => write!(f, "Unsupported device type"),
-            DeviceError::InvalidZone(zone_id) => write!(f, "Invalid Color Zone: {}", zone_id),
-            DeviceError::InvalidColor(str) => write!(f, "Invalid Color: {}", str),
+            DeviceError::InvalidZone(zone_id) => write!(
+                f,
+                "Back color zone {} is not valid. Only zones 1-8 are allowed.",
+                zone_id
+            ),
+            DeviceError::InvalidColor(str) => write!(
+                f,
+                "Back color {} is not valid. Only hexadecimal colors are allowed.",
+                str
+            ),
         }
     }
 }
@@ -382,8 +390,8 @@ impl DeviceHandle {
         MAXIMUM_TEMPERATURE_IN_KELVIN
     }
 
-    /// Sets a color in one of the zones
-    pub fn set_color(&self, zone_id: u8, red: u8, green: u8, blue: u8) -> DeviceResult<()> {
+    /// Sets the color of one or more of the zones on the colorful back side of the Litra Beam LX. Only Litra Beam LX devices are supported.
+    pub fn set_back_color(&self, zone_id: u8, red: u8, green: u8, blue: u8) -> DeviceResult<()> {
         if self.device_type != DeviceType::LitraBeamLX {
             return Err(DeviceError::UnsupportedDeviceType);
         }
@@ -394,7 +402,7 @@ impl DeviceHandle {
         }
 
         // The device seems to freak out if these values are 0, prevent it
-        let message = generate_set_color(zone_id, red.max(1), green.max(1), blue.max(1));
+        let message = generate_set_back_color_bytes(zone_id, red.max(1), green.max(1), blue.max(1));
 
         self.hid_device.write(&message)?;
         self.hid_device
@@ -402,15 +410,8 @@ impl DeviceHandle {
         Ok(())
     }
 
-    /// Finish setting the colors
-    pub fn set_color_finish(&self) -> DeviceResult<()> {
-        self.hid_device
-            .write(&[0x11, 0xff, 0x0C, 0x7B, 0, 0, 1, 0, 0])?;
-        Ok(())
-    }
-
-    /// Sets a the brightness of the colorful side
-    pub fn set_color_brightness(&self, brightness: u8) -> DeviceResult<()> {
+    /// Sets the brightness of the colorful back side of the Litra Beam LX to a percentage value. Only Litra Beam LX devices are supported.
+    pub fn set_back_brightness_percentage(&self, brightness: u8) -> DeviceResult<()> {
         if self.device_type != DeviceType::LitraBeamLX {
             return Err(DeviceError::UnsupportedDeviceType);
         }
@@ -418,18 +419,19 @@ impl DeviceHandle {
             return Err(DeviceError::InvalidBrightness(brightness.into()));
         }
 
-        let message = generate_set_color_brightness(brightness);
+        let message = generate_set_back_brightness_percentage_bytes(brightness);
 
         self.hid_device.write(&message)?;
         Ok(())
     }
 
-    /// Switches the colorful side
-    pub fn set_color_switch(&self, on: bool) -> DeviceResult<()> {
+    /// Sets the power status of the colorful back side of the Litra Beam LX. Only Litra Beam LX devices are supported.
+    /// Turns the device on if `true` is passed and turns it off on `false`.
+    pub fn set_back_on(&self, on: bool) -> DeviceResult<()> {
         if self.device_type != DeviceType::LitraBeamLX {
             return Err(DeviceError::UnsupportedDeviceType);
         }
-        let message = generate_set_color_switch(on);
+        let message = generate_set_back_on_bytes(on);
 
         self.hid_device.write(&message)?;
         Ok(())
@@ -613,20 +615,20 @@ fn generate_set_temperature_in_kelvin_bytes(
     }
 }
 
-fn generate_set_color(zone_id: u8, red: u8, green: u8, blue: u8) -> [u8; 20] {
+fn generate_set_back_color_bytes(zone_id: u8, red: u8, green: u8, blue: u8) -> [u8; 20] {
     [
         0x11, 0xff, 0x0C, 0x1B, zone_id, red, green, blue, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00,
         0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
     ]
 }
 
-fn generate_set_color_brightness(brightness: u8) -> [u8; 20] {
+fn generate_set_back_brightness_percentage_bytes(brightness: u8) -> [u8; 20] {
     [
         0x11, 0xff, 0x0a, 0x2b, 0x00, brightness, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]
 }
 
-fn generate_set_color_switch(on: bool) -> [u8; 20] {
+fn generate_set_back_on_bytes(on: bool) -> [u8; 20] {
     [
         0x11,
         0xff,

@@ -276,7 +276,8 @@ enum Commands {
         )]
         value: u16,
     },
-    Colors {
+    // Set the color of one or more zones on the back of your Logitech Litra Beam LX device. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackColor {
         #[clap(
             long,
             short,
@@ -289,20 +290,21 @@ enum Commands {
             help = DEVICE_PATH_ARGUMENT_HELP
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
-        device_type: Option<DeviceType>,
         #[clap(
             long,
             short,
-            help = "The color to set in a RGB hex value (e.g. ff0000 for red)."
+            help = "The hexadecimal color code to use (e.g. FF0000 for red)."
         )]
         value: String,
         #[clap(
-            help = "The zone 1-8 from left to right. If the zone_id is not specified, it will be set to all zones."
+            long,
+            short,
+            help = "The zone of the light to control, numbered 1 to 8 from left to right. If not specified, all zones will be targeted."
         )]
-        zone_id: Option<u8>,
+        zone: Option<u8>,
     },
-    ColorsBrightness {
+    /// Set the brightness of the colorful backlight on your Logitech Litra Beam LX device. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackBrightness {
         #[clap(
             long,
             short,
@@ -315,16 +317,15 @@ enum Commands {
             help = DEVICE_PATH_ARGUMENT_HELP
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
-        device_type: Option<DeviceType>,
         #[clap(
             long,
-            short,
-            help = "The brightness (0-100) to set on the colorful side."
+            short('b'),
+            help = "The brightness to set, as a percentage of the maximum brightness"
         )]
-        value: u8,
+        percentage: u8,
     },
-    ColorsOff {
+    /// Turn off the colorful backlight on your Logitech Litra Beam LX device. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackOff {
         #[clap(
             long,
             short,
@@ -337,10 +338,9 @@ enum Commands {
             help = DEVICE_PATH_ARGUMENT_HELP
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
-        device_type: Option<DeviceType>,
     },
-    ColorsOn {
+    /// Turn on the colorful backlight on your Logitech Litra Beam LX device. By default, all Litra Beam LX devices are targeted, unless a specific device is specified with --serial-number or --device-path.
+    BackOn {
         #[clap(
             long,
             short,
@@ -353,8 +353,6 @@ enum Commands {
             help = DEVICE_PATH_ARGUMENT_HELP
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
-        device_type: Option<DeviceType>,
     },
     /// List Logitech Litra devices connected to your computer
     Devices {
@@ -920,38 +918,40 @@ fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
     let hex = hex.trim_start_matches('#');
 
     if hex.len() != 6 {
-        return Err("hex color must be exactly 6 characters long".into());
+        return Err("Hex color must be exactly 6 characters long".into());
     }
 
-    let r = u8::from_str_radix(&hex[0..2], 16).map_err(|_| "failed to parse red component")?;
-    let g = u8::from_str_radix(&hex[2..4], 16).map_err(|_| "failed to parse green component")?;
-    let b = u8::from_str_radix(&hex[4..6], 16).map_err(|_| "failed to parse blue component")?;
+    let r = u8::from_str_radix(&hex[0..2], 16)
+        .map_err(|_| "Failed to parse red component from hex color")?;
+    let g = u8::from_str_radix(&hex[2..4], 16)
+        .map_err(|_| "Failed to parse green component from hex color")?;
+    let b = u8::from_str_radix(&hex[4..6], 16)
+        .map_err(|_| "Failed to parse blue component from hex color")?;
 
     Ok((r, g, b))
 }
 
-fn handle_colors_command(
+fn handle_back_color_command(
     serial_number: Option<&str>,
     device_path: Option<&str>,
-    device_type: Option<&DeviceType>,
     hex: &str,
     zone_id: Option<u8>,
 ) -> CliResult {
     with_device(
         serial_number,
         device_path,
-        device_type,
+        Some(&DeviceType::LitraBeamLX),
         |device_handle| match hex_to_rgb(hex) {
             Ok((r, g, b)) => match zone_id {
                 None => {
                     for i in 1..=8 {
-                        device_handle.set_color(i, r, g, b)?;
+                        device_handle.set_back_color(i, r, g, b)?;
                     }
-                    device_handle.set_color_finish()
+                    Ok(())
                 }
                 Some(id) => {
-                    device_handle.set_color(id, r, g, b)?;
-                    device_handle.set_color_finish()
+                    device_handle.set_back_color(id, r, g, b)?;
+                    Ok(())
                 }
             },
             Err(error) => Err(DeviceError::InvalidColor(error)),
@@ -959,35 +959,35 @@ fn handle_colors_command(
     )
 }
 
-fn handle_colors_brightness_command(
+fn handle_back_brightness_command(
     serial_number: Option<&str>,
     device_path: Option<&str>,
-    device_type: Option<&DeviceType>,
     brightness: u8,
 ) -> CliResult {
-    with_device(serial_number, device_path, device_type, |device_handle| {
-        device_handle.set_color_brightness(brightness)
-    })
+    with_device(
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+        |device_handle| device_handle.set_back_brightness_percentage(brightness),
+    )
 }
 
-fn handle_colors_off_command(
-    serial_number: Option<&str>,
-    device_path: Option<&str>,
-    device_type: Option<&DeviceType>,
-) -> CliResult {
-    with_device(serial_number, device_path, device_type, |device_handle| {
-        device_handle.set_color_switch(false)
-    })
+fn handle_back_off_command(serial_number: Option<&str>, device_path: Option<&str>) -> CliResult {
+    with_device(
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+        |device_handle| device_handle.set_back_on(false),
+    )
 }
 
-fn handle_colors_on_command(
-    serial_number: Option<&str>,
-    device_path: Option<&str>,
-    device_type: Option<&DeviceType>,
-) -> CliResult {
-    with_device(serial_number, device_path, device_type, |device_handle| {
-        device_handle.set_color_switch(true)
-    })
+fn handle_back_on_command(serial_number: Option<&str>, device_path: Option<&str>) -> CliResult {
+    with_device(
+        serial_number,
+        device_path,
+        Some(&DeviceType::LitraBeamLX),
+        |device_handle| device_handle.set_back_on(true),
+    )
 }
 
 #[cfg(feature = "mcp")]
@@ -1100,48 +1100,34 @@ fn main() -> ExitCode {
             device_type.as_ref(),
             *value,
         ),
-        Commands::Colors {
+        Commands::BackColor {
             serial_number,
             device_path,
-            device_type,
             value,
-            zone_id,
-        } => handle_colors_command(
+            zone: zone_id,
+        } => handle_back_color_command(
             serial_number.as_deref(),
             device_path.as_deref(),
-            device_type.as_ref(),
             value,
             *zone_id,
         ),
-        Commands::ColorsBrightness {
+        Commands::BackBrightness {
             serial_number,
             device_path,
-            device_type,
-            value,
-        } => handle_colors_brightness_command(
+            percentage,
+        } => handle_back_brightness_command(
             serial_number.as_deref(),
             device_path.as_deref(),
-            device_type.as_ref(),
-            *value,
+            *percentage,
         ),
-        Commands::ColorsOff {
+        Commands::BackOff {
             serial_number,
             device_path,
-            device_type,
-        } => handle_colors_off_command(
-            serial_number.as_deref(),
-            device_path.as_deref(),
-            device_type.as_ref(),
-        ),
-        Commands::ColorsOn {
+        } => handle_back_off_command(serial_number.as_deref(), device_path.as_deref()),
+        Commands::BackOn {
             serial_number,
             device_path,
-            device_type,
-        } => handle_colors_on_command(
-            serial_number.as_deref(),
-            device_path.as_deref(),
-            device_type.as_ref(),
-        ),
+        } => handle_back_on_command(serial_number.as_deref(), device_path.as_deref()),
         #[cfg(feature = "mcp")]
         Commands::Mcp => handle_mcp_command(),
     };
