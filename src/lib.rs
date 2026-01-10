@@ -93,6 +93,14 @@ pub enum DeviceType {
     LitraBeamLX,
 }
 
+impl DeviceType {
+    /// Returns true if this device type has a colorful back side (only Litra Beam LX).
+    #[must_use]
+    pub fn has_back_side(&self) -> bool {
+        *self == DeviceType::LitraBeamLX
+    }
+}
+
 impl fmt::Display for DeviceType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
