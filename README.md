@@ -8,10 +8,11 @@
 
 With this tool, you can:
 
-- Turn your light on and off
-- Check if the light is on or off
-- Set, get, increase and decrease the brightness of your light
-- Set, get, increase and decrease the temperature of your light
+- 💡 Turn your light on and off
+- 👀 Check if the light is on or off
+- 🎛️ Set, get, increase and decrease the brightness of your light
+- 🌡️ Set, get, increase and decrease the temperature of your light
+- 🌈 Control the colorful back side of the Litra Beam LX, turning it on and off, setting the brightness and switching colors
 
 > [!TIP]
 > 🖲️ Want to automatically turn your Litra on and off when your webcam turns on and off? Check out [`litra-autotoggle`](https://github.com/timrogers/litra-autotoggle)!
@@ -68,12 +69,19 @@ The following commands are available for controlling your devices:
 - `litra temperature`: Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The temperature can be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command.
 - `litra temperature-up`: Increases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 - `litra temperature-down`: Decreases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
+- `litra back-on`: Turn on the colorful backlight on your Logitech Litra Beam LX device
+- `litra back-off`: Turn off the colorful backlight on your Logitech Litra Beam LX device
+- `litra back-toggle`: Toggles the colorful backlight on your Logitech Litra Beam LX device on or off
+- `litra back-brightness`: Sets the brightness of the colorful backlight on your Logitech Litra Beam LX device, using `--percentage` (as a percentage of the maximum brightness)
+- `litra back-brightness-up`: Increases the brightness of the colorful backlight on your Logitech Litra Beam LX device, using `--percentage` (with a number of percentage points to add to the backlight's brightness)
+- `litra back-brightness-down`: Decreases the brightness of the colorful backlight on your Logitech Litra Beam LX device, using `--percentage` (with a number of percentage points to subtract from the backlight's brightness)
+- `litra back-color`: Sets the color of the colorful backlight on your Logitech Litra Beam LX device, using `--value` (a hexadecimal color code, e.g. `FF0000` for red). You can optionally target a specific zone with `--zone` (numbered 1 to 7 from left to right).
 
 By default, these commands target all connected Litra devices, but this can be filtered down using one of the following device targeting options:
 
 - `--serial-number`/`-s`: Specify the device to target by its serial number
 - `--device-path`/`-p`: Specify the device path to target (useful when devices don't have serial numbers)
-- `--device-type`/`-t`: Specify the type of device to target (`glow`, `beam`, or `beam_lx`)
+- `--device-type`/`-t`: Specify the type of device to target: `glow`, `beam`, or `beam_lx` (not available for `back-*` commands which only support Litra Beam LX devices)
 
 The following commands are also included:
 
@@ -122,6 +130,13 @@ The following tools are available:
 - `litra_temperature`: Sets the temperature of your Logitech Litra device to a specific value measured in kelvin (K). The temperature can be set to any multiple of 100 between the minimum and maximum for the device returned by the `litra_devices` tool.
 - `litra_temperature_up`: Increases the temperature of your Logitech Litra device, using a specific value measured in kelvin (K). The value must be a multiple of 100.
 - `litra_temperature_down`: Decreases the temperature of your Logitech Litra device, using a specific measured in kelvin (K). The value must be a multiple of 100.
+- `litra_back_on`: Turn on the back light on your Logitech Litra Beam LX device
+- `litra_back_off`: Turn off the back light on your Logitech Litra Beam LX device
+- `litra_back_toggle`: Toggles the back light on your Logitech Litra Beam LX device on or off
+- `litra_back_brightness`: Sets the brightness of the back light on your Logitech Litra Beam LX device to a specific percentage of the maximum brightness
+- `litra_back_brightness_up`: Increases the brightness of the back light on your Logitech Litra Beam LX device by a specified number of percentage points
+- `litra_back_brightness_down`: Decreases the brightness of the back light on your Logitech Litra Beam LX device by a specified number of percentage points
+- `litra_back_color`: Sets the color of the back light on your Logitech Litra Beam LX device to a specific hexadecimal color code. Can target a specific zone (1-7) or all zones.
 
 ### From a Rust application
 
