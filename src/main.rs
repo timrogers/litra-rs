@@ -945,19 +945,13 @@ fn handle_colors_command(
             Ok((r, g, b)) => {
                 match zone_id {
                     None => {
-                        for i in 1..8 {
-                            let x = device_handle.set_color(i, r, g, b);
-                            if x.is_err() {
-                                return x
-                            }
+                        for i in 1..=8 {
+                            device_handle.set_color(i, r, g, b)?;
                         }
                         device_handle.set_color_finish()
                     }
                     Some(id) => {
-                        let x = device_handle.set_color(id, r, g, b);
-                        if x.is_err() {
-                            return x
-                        }
+                        device_handle.set_color(id, r, g, b)?;
                         device_handle.set_color_finish()
                     }
                 }
