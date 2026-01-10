@@ -76,20 +76,23 @@ impl Litra {
 }
 
 /// The model of the device.
-#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize, serde::Serialize)]
 #[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 pub enum DeviceType {
     /// Logitech [Litra Glow][glow] streaming light with TrueSoft.
     ///
     /// [glow]: https://www.logitech.com/products/lighting/litra-glow.html
+    #[serde(rename = "glow")]
     LitraGlow,
     /// Logitech [Litra Beam][beam] LED streaming key light with TrueSoft.
     ///
     /// [beam]: https://www.logitechg.com/products/cameras-lighting/litra-beam-streaming-light.html
+    #[serde(rename = "beam")]
     LitraBeam,
     /// Logitech [Litra Beam LX][beamlx] dual-sided RGB streaming key light.
     ///
     /// [beamlx]: https://www.logitechg.com/products/cameras-lighting/litra-beam-lx-led-light.html
+    #[serde(rename = "beam_lx")]
     LitraBeamLX,
 }
 

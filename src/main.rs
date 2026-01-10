@@ -649,14 +649,18 @@ fn is_user_input_error(error: &DeviceError) -> bool {
 #[cfg_attr(feature = "mcp", derive(schemars::JsonSchema))]
 #[derive(Serialize, Debug)]
 pub struct DeviceInfo {
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub device_type: DeviceType,
     #[cfg_attr(feature = "cli", tabled(rename = "Type"))]
-    pub device_type: String,
+    pub device_type_display: String,
+    #[cfg_attr(feature = "cli", tabled(skip))]
+    pub has_back_side: bool,
     #[cfg_attr(feature = "cli", tabled(rename = "Serial Number"))]
     pub serial_number: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Device Path"))]
     pub device_path: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Status"))]
-    pub status: String,
+    pub status_display: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Brightness (lm)"))]
     pub brightness_display: String,
     #[cfg_attr(feature = "cli", tabled(rename = "Temperature (K)"))]
@@ -752,10 +756,12 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
             };
 
             Some(DeviceInfo {
-                device_type: device.device_type().to_string(),
+                device_type: device.device_type(),
+                device_type_display: device.device_type().to_string(),
+                has_back_side: device.device_type().has_back_side(),
                 serial_number: serial,
                 device_path,
-                status: format!("{} {}", get_is_on_text(is_on), get_is_on_emoji(is_on)),
+                status_display: format!("{} {}", get_is_on_text(is_on), get_is_on_emoji(is_on)),
                 brightness_display: format!(
                     "{}/{}",
                     brightness,
