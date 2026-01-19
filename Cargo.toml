@@ -12,8 +12,13 @@ keywords = ["logitech", "litra", "glow", "beam", "light"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
 hidapi = { version = "2.6.4", default-features = false, features = ["linux-shared-hidraw"] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+hidapi = "2.6.4"
+
+[dependencies]
 clap = { version = "4.5.53", features = ["derive"], optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.145" }
