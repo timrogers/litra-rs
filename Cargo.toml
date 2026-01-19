@@ -18,7 +18,7 @@ clap = { version = "4.5.53", features = ["derive"], optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.145" }
 tabled = { version = "0.20", optional = true }
-rmcp = { version = "0.12.0", features = ["server", "transport-io", "macros"], optional = true }
+rmcp = { version = "0.13.0", features = ["server", "transport-io", "macros"], optional = true }
 tokio = { version = "1.48", features = ["rt", "rt-multi-thread", "macros"], optional = true }
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
