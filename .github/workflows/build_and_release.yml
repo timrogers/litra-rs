@@ -42,8 +42,8 @@ jobs:
       - name: Add $HOME/.cargo/bin to PATH (self-hosted runners only)
         run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
         if: matrix.job.runs_on == 'self-hosted'
-      - name: Install libudev-dev
-        run: sudo apt-get update && sudo apt-get install -y libudev-dev
+      - name: Install dependencies (Linux only)
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev libhidapi-dev
         if: runner.os == 'Linux'
       - uses: actions/checkout@v6
       - name: Use Rust 1.92.0 with target ${{ matrix.job.target }}
