@@ -62,7 +62,7 @@ impl Litra {
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
             .collect();
-        devices.sort_by(|a, b| a.device_path().cmp(&b.device_path()));
+        devices.sort_by_key(|a| a.device_path());
         devices.into_iter()
     }
 
