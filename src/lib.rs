@@ -32,17 +32,24 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
 /// Litra context.
 ///
 /// This can be used to list available devices.
-pub struct Litra(HidApi);
+pub struct Litra {
+    hidapi: HidApi,
+    sorted_device_paths: Vec<String>,
+    device_path_indices: HashMap<String, usize>,
+}
 
 impl fmt::Debug for Litra {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Litra").finish()
+        f.debug_struct("Litra")
+            .field("sorted_device_paths", &self.sorted_device_paths)
+            .finish_non_exhaustive()
     }
 }
 
@@ -52,30 +59,83 @@ impl Litra {
         let hidapi = HidApi::new()?;
         #[cfg(target_os = "macos")]
         hidapi.set_open_exclusive(false);
-        Ok(Litra(hidapi))
+
+        // Build the initial sorted device paths cache
+        let (sorted_device_paths, device_path_indices) = Self::build_device_cache(&hidapi);
+
+        Ok(Litra {
+            hidapi,
+            sorted_device_paths,
+            device_path_indices,
+        })
+    }
+
+    /// Helper function to build a sorted list of device paths and their index map from the HidApi
+    fn build_device_cache(hidapi: &HidApi) -> (Vec<String>, HashMap<String, usize>) {
+        let mut paths: Vec<String> = hidapi
+            .device_list()
+            .filter_map(|device_info| {
+                if Device::try_from(device_info).is_ok() {
+                    Some(device_info.path().to_string_lossy().to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        paths.sort();
+
+        let indices: HashMap<String, usize> = paths
+            .iter()
+            .enumerate()
+            .map(|(idx, path)| (path.clone(), idx))
+            .collect();
+
+        (paths, indices)
     }
 
     /// Returns an [`Iterator`] of cached connected devices supported by this library. To refresh the list of connected devices, use [`Litra::refresh_connected_devices`].
     pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
-        let mut devices: Vec<Device<'_>> = self
-            .0
+        let devices: Vec<Device<'_>> = self
+            .hidapi
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
             .collect();
-        devices.sort_by(|a, b| a.device_path().cmp(&b.device_path()));
-        devices.into_iter()
+
+        // Create a vector of (device, sort_key) pairs to avoid calling device_path()
+        // multiple times during sorting. The sort key uses cached indices for O(1) lookup.
+        let mut devices_with_keys: Vec<(Device<'_>, usize)> = devices
+            .into_iter()
+            .map(|device| {
+                let path = device.device_path();
+                let sort_key = self
+                    .device_path_indices
+                    .get(&path)
+                    .copied()
+                    .unwrap_or(usize::MAX);
+                (device, sort_key)
+            })
+            .collect();
+
+        devices_with_keys.sort_by_key(|(_, key)| *key);
+        devices_with_keys.into_iter().map(|(device, _)| device)
     }
 
     /// Refreshes the list of connected devices, returned by [`Litra::get_connected_devices`].
     pub fn refresh_connected_devices(&mut self) -> DeviceResult<()> {
-        self.0.refresh_devices()?;
+        self.hidapi.refresh_devices()?;
+
+        // Rebuild the sorted device paths cache after refresh
+        let (sorted_device_paths, device_path_indices) = Self::build_device_cache(&self.hidapi);
+        self.sorted_device_paths = sorted_device_paths;
+        self.device_path_indices = device_path_indices;
+
         Ok(())
     }
 
     /// Retrieve the underlying hidapi context.
     #[must_use]
     pub fn hidapi(&self) -> &HidApi {
-        &self.0
+        &self.hidapi
     }
 }
 
