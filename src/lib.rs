@@ -57,9 +57,13 @@ impl Litra {
 
     /// Returns an [`Iterator`] of cached connected devices supported by this library. To refresh the list of connected devices, use [`Litra::refresh_connected_devices`].
     pub fn get_connected_devices(&self) -> impl Iterator<Item = Device<'_>> {
-        self.0
+        let mut devices: Vec<Device<'_>> = self
+            .0
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
+            .collect();
+        devices.sort_by(|a, b| a.device_path().cmp(&b.device_path()));
+        devices.into_iter()
     }
 
     /// Refreshes the list of connected devices, returned by [`Litra::get_connected_devices`].
