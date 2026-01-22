@@ -99,16 +99,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
     },
     /// Turn your Logitech Litra device off. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
@@ -116,16 +118,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
     },
     /// Toggles your Logitech Litra device on or off. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
@@ -133,16 +137,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
     },
     /// Sets the brightness of your Logitech Litra device. By default, all devices are targeted, unless one or more devices are specified with --device-type, --serial-number or --device-path.
@@ -151,16 +157,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -184,16 +192,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -217,16 +227,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -249,16 +261,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -272,16 +286,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -295,16 +311,18 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with_all = ["device_path", "device_type"]
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with_all = ["serial_number", "device_type"]
         )]
         device_path: Option<String>,
-        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser)]
+        #[clap(long, short('t'), help = DEVICE_TYPE_ARGUMENT_HELP, value_parser = DeviceTypeValueParser, conflicts_with_all = ["serial_number", "device_path"])]
         device_type: Option<DeviceType>,
         #[clap(
             long,
@@ -319,13 +337,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
         #[clap(
@@ -354,13 +374,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
         #[clap(
@@ -376,13 +398,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
     },
@@ -391,13 +415,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
     },
@@ -406,13 +432,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
     },
@@ -421,13 +449,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
         #[clap(
@@ -443,13 +473,15 @@ enum Commands {
         #[clap(
             long,
             short,
-            help = SERIAL_NUMBER_ARGUMENT_HELP
+            help = SERIAL_NUMBER_ARGUMENT_HELP,
+            conflicts_with = "device_path"
         )]
         serial_number: Option<String>,
         #[clap(
             long,
             short('p'),
-            help = DEVICE_PATH_ARGUMENT_HELP
+            help = DEVICE_PATH_ARGUMENT_HELP,
+            conflicts_with = "serial_number"
         )]
         device_path: Option<String>,
         #[clap(
@@ -540,7 +572,6 @@ enum CliError {
     DeviceError(DeviceError),
     SerializationFailed(serde_json::Error),
     DeviceNotFound,
-    MultipleFilterSpecified,
     MCPError(String),
 }
 
@@ -550,7 +581,6 @@ impl fmt::Display for CliError {
             CliError::DeviceError(error) => error.fmt(f),
             CliError::SerializationFailed(error) => error.fmt(f),
             CliError::DeviceNotFound => write!(f, "Device not found."),
-            CliError::MultipleFilterSpecified => write!(f, "Only one filter (--serial-number, --device-path, or --device-type) can be specified at a time."),
             CliError::MCPError(message) => write!(f, "MCP server error: {}", message),
         }
     }
@@ -564,23 +594,6 @@ impl From<DeviceError> for CliError {
 
 type CliResult = Result<(), CliError>;
 
-/// Validates that only one filter is specified
-fn validate_single_filter(
-    serial_number: Option<&str>,
-    device_path: Option<&str>,
-    device_type: Option<&DeviceType>,
-) -> Result<(), CliError> {
-    let filter_count = serial_number.is_some() as usize
-        + device_path.is_some() as usize
-        + device_type.is_some() as usize;
-
-    if filter_count > 1 {
-        Err(CliError::MultipleFilterSpecified)
-    } else {
-        Ok(())
-    }
-}
-
 /// Get all devices matching the given filters
 fn get_all_supported_devices(
     context: &Litra,
@@ -588,9 +601,6 @@ fn get_all_supported_devices(
     device_path: Option<&str>,
     device_type: Option<&DeviceType>,
 ) -> Result<Vec<DeviceHandle>, CliError> {
-    // Validate that only one filter is used
-    validate_single_filter(serial_number, device_path, device_type)?;
-
     // Filter by various criteria
     let potential_devices: Vec<Device> = context
         .get_connected_devices()
@@ -636,44 +646,21 @@ where
 {
     let context = Litra::new()?;
 
-    // Default to all matching devices or explicit filter
-    let use_all = serial_number.is_none() && device_path.is_none() && device_type.is_none();
-
-    if use_all {
-        // Get all devices
-        let devices = get_all_supported_devices(&context, None, None, None)?;
-        if devices.is_empty() {
-            return Err(CliError::DeviceNotFound);
-        }
-
-        for device_handle in devices {
-            // Ignore device-specific errors (e.g. unsupported device type) but propagate
-            // validation errors (e.g. invalid brightness) since those indicate user input errors
-            if let Err(e) = callback(&device_handle) {
-                if is_user_input_error(&e) {
-                    return Err(e.into());
-                }
-            }
-        }
-        Ok(())
-    } else {
-        // Filtering by one of the options
-        let devices = get_all_supported_devices(&context, serial_number, device_path, device_type)?;
-        if devices.is_empty() {
-            return Err(CliError::DeviceNotFound);
-        }
-
-        // Apply to all matched devices
-        for device_handle in devices {
-            // Ignore device-specific errors but propagate validation errors
-            if let Err(e) = callback(&device_handle) {
-                if is_user_input_error(&e) {
-                    return Err(e.into());
-                }
-            }
-        }
-        Ok(())
+    let devices = get_all_supported_devices(&context, serial_number, device_path, device_type)?;
+    if devices.is_empty() {
+        return Err(CliError::DeviceNotFound);
     }
+
+    for device_handle in devices {
+        // Ignore device-specific errors (e.g. unsupported device type) but propagate
+        // validation errors (e.g. invalid brightness) since those indicate user input errors
+        if let Err(e) = callback(&device_handle) {
+            if is_user_input_error(&e) {
+                return Err(e.into());
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Returns true if the error is caused by invalid user input and should be propagated
