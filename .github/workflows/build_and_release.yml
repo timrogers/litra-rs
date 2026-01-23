@@ -34,6 +34,11 @@ jobs:
               binary_name: windows-amd64.exe,
               runs_on: windows-latest,
             }
+          - {
+              target: aarch64-pc-windows-msvc,
+              binary_name: windows-arm64.exe,
+              runs_on: windows-arm64,
+            }
     runs-on: ${{ matrix.job.runs_on }}
     steps:
       - name: Install rustup (self-hosted runners only)
@@ -193,11 +198,15 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
+      - uses: actions/download-artifact@v7
+        with:
+          name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-arm64.exe
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
+            litra_${{ steps.sanitise_ref.outputs.value }}_windows-arm64.exe
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
             litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
             litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
