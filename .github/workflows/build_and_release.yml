@@ -37,7 +37,7 @@ jobs:
           - {
               target: aarch64-pc-windows-msvc,
               binary_name: windows-arm64.exe,
-              runs_on: windows-arm64,
+              runs_on: windows-11-arm,
             }
     runs-on: ${{ matrix.job.runs_on }}
     steps:
