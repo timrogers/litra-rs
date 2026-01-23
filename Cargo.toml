@@ -1,6 +1,6 @@
 [package]
 name = "litra"
-version = "3.1.0"
+version = "3.1.1"
 edition = "2021"
 authors = ["Tim Rogers <timrogers@github.com>"]
 description = "Control Logitech Litra lights from the command line, Model Context Protocol (MCP) clients and Rust applications"
