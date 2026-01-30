@@ -29,8 +29,11 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 
 ### macOS or Linux via [Homebrew](https://brew.sh/)
 
-1. Install the latest version by running `brew tap timrogers/tap && brew install litra`.
+1. Install the latest version by running `brew install litra`.
 1. Run `litra --help` to check that everything is working and see the available commands.
+
+> [!NOTE]
+> If you installed Litra via Homebrew before January 30 2026, you will have installed from the `timrogers/homebrew-tap` tap. `litra` is now available through `homebrew-core`. You should reinstall the tool by running `brew uninstall litra && brew install litra`.
 
 ### macOS, Linux or Windows via [Cargo](https://doc.rust-lang.org/cargo/), Rust's package manager
 
