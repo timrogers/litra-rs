@@ -4,6 +4,7 @@ use serde::Serialize;
 use std::fmt;
 use std::process::ExitCode;
 use std::str::FromStr;
+use std::time::Duration;
 
 #[cfg(feature = "cli")]
 use tabled::{Table, Tabled};
@@ -1239,8 +1240,112 @@ fn handle_mcp_command() -> CliResult {
     mcp::handle_mcp_command()
 }
 
+/// The current version of the CLI, extracted from Cargo.toml
+const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// GitHub API URL for fetching the latest release
+const GITHUB_API_URL: &str = "https://api.github.com/repos/timrogers/litra-rs/releases/latest";
+
+/// Timeout for update check requests in seconds
+const UPDATE_CHECK_TIMEOUT_SECS: u64 = 2;
+
+/// Response structure for GitHub releases API
+#[derive(serde::Deserialize)]
+struct GitHubRelease {
+    tag_name: String,
+}
+
+/// Checks for updates by fetching the latest release from GitHub.
+/// Returns the latest version tag if a newer version is available, None otherwise.
+/// This function will timeout after 2 seconds and log a warning, but will not
+/// disrupt the CLI's normal operation.
+#[cfg(feature = "cli")]
+fn check_for_updates() -> Option<String> {
+    let timeout = Duration::from_secs(UPDATE_CHECK_TIMEOUT_SECS);
+
+    let agent = ureq::Agent::new_with_config(
+        ureq::Agent::config_builder()
+            .timeout_global(Some(timeout))
+            .build(),
+    );
+
+    let mut response = match agent
+        .get(GITHUB_API_URL)
+        .header("User-Agent", format!("litra-rs/{}", CURRENT_VERSION))
+        .header("Accept", "application/vnd.github.v3+json")
+        .call()
+    {
+        Ok(response) => response,
+        Err(e) => {
+            if let ureq::Error::Timeout(_) = e {
+                eprintln!(
+                    "Warning: Update check timed out after {} seconds",
+                    UPDATE_CHECK_TIMEOUT_SECS
+                );
+            }
+            // Silently ignore other errors to not disrupt CLI operation
+            return None;
+        }
+    };
+
+    let release: GitHubRelease = match response.body_mut().read_json() {
+        Ok(release) => release,
+        Err(_) => return None,
+    };
+
+    // Extract version from tag_name (e.g., "v3.2.0" -> "3.2.0")
+    let latest_version = release.tag_name.trim_start_matches('v');
+
+    // Compare versions - only notify if the latest version is different and newer
+    if is_newer_version(latest_version, CURRENT_VERSION) {
+        Some(release.tag_name)
+    } else {
+        None
+    }
+}
+
+/// Compares two semantic version strings to determine if `latest` is newer than `current`.
+/// Returns true if `latest` is a newer version.
+fn is_newer_version(latest: &str, current: &str) -> bool {
+    let parse_version = |v: &str| -> Option<(u32, u32, u32)> {
+        let parts: Vec<&str> = v.split('.').collect();
+        if parts.len() >= 3 {
+            Some((
+                parts[0].parse().ok()?,
+                parts[1].parse().ok()?,
+                parts[2].parse().ok()?,
+            ))
+        } else if parts.len() == 2 {
+            Some((parts[0].parse().ok()?, parts[1].parse().ok()?, 0))
+        } else if parts.len() == 1 {
+            Some((parts[0].parse().ok()?, 0, 0))
+        } else {
+            None
+        }
+    };
+
+    match (parse_version(latest), parse_version(current)) {
+        (Some((l_major, l_minor, l_patch)), Some((c_major, c_minor, c_patch))) => {
+            (l_major, l_minor, l_patch) > (c_major, c_minor, c_patch)
+        }
+        _ => false,
+    }
+}
+
 #[cfg(feature = "cli")]
 fn main() -> ExitCode {
+    // Check for updates in the background - this should not block or fail the CLI
+    if let Some(latest_version) = check_for_updates() {
+        eprintln!(
+            "A new version of litra is available: {} (current: v{})",
+            latest_version, CURRENT_VERSION
+        );
+        eprintln!(
+            "Download it from: https://github.com/timrogers/litra-rs/releases/tag/{}",
+            latest_version
+        );
+    }
+
     let args = Cli::parse();
 
     let result = match &args.command {
@@ -1562,5 +1667,49 @@ mod tests {
             );
             prev_value = current_value;
         }
+    }
+
+    #[test]
+    fn test_is_newer_version_major() {
+        assert!(is_newer_version("4.0.0", "3.2.0"));
+        assert!(is_newer_version("2.0.0", "1.0.0"));
+        assert!(!is_newer_version("1.0.0", "2.0.0"));
+        assert!(!is_newer_version("3.0.0", "4.0.0"));
+    }
+
+    #[test]
+    fn test_is_newer_version_minor() {
+        assert!(is_newer_version("3.3.0", "3.2.0"));
+        assert!(is_newer_version("1.2.0", "1.1.0"));
+        assert!(!is_newer_version("1.1.0", "1.2.0"));
+        assert!(!is_newer_version("3.2.0", "3.3.0"));
+    }
+
+    #[test]
+    fn test_is_newer_version_patch() {
+        assert!(is_newer_version("3.2.1", "3.2.0"));
+        assert!(is_newer_version("1.0.5", "1.0.4"));
+        assert!(!is_newer_version("1.0.4", "1.0.5"));
+        assert!(!is_newer_version("3.2.0", "3.2.1"));
+    }
+
+    #[test]
+    fn test_is_newer_version_same_version() {
+        assert!(!is_newer_version("3.2.0", "3.2.0"));
+        assert!(!is_newer_version("1.0.0", "1.0.0"));
+    }
+
+    #[test]
+    fn test_is_newer_version_edge_cases() {
+        // Two-part version
+        assert!(is_newer_version("3.3", "3.2"));
+        assert!(!is_newer_version("3.2", "3.3"));
+        // One-part version
+        assert!(is_newer_version("4", "3"));
+        assert!(!is_newer_version("3", "4"));
+        // Invalid version format
+        assert!(!is_newer_version("invalid", "3.2.0"));
+        assert!(!is_newer_version("3.2.0", "invalid"));
+        assert!(!is_newer_version("", "3.2.0"));
     }
 }
