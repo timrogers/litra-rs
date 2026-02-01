@@ -24,10 +24,12 @@ tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
 schemars = { version = "1.2", features = ["derive"], optional = true }
 ureq = { version = "3.0.11", features = ["json"], optional = true }
+toml = { version = "0.8.20", optional = true }
+dirs = { version = "6.0.0", optional = true }
 
 [features]
 default = ["cli", "mcp"]
-cli = ["dep:clap", "dep:tabled", "dep:ureq"]
+cli = ["dep:clap", "dep:tabled", "dep:ureq", "dep:toml", "dep:dirs"]
 mcp = ["cli", "dep:rmcp", "dep:tokio", "dep:tracing", "dep:tracing-subscriber", "dep:schemars"]
 
 [[bin]]

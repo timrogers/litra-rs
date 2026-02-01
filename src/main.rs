@@ -1255,12 +1255,103 @@ struct GitHubRelease {
     tag_name: String,
 }
 
+/// Configuration file name
+const CONFIG_FILE_NAME: &str = "litra.toml";
+
+/// Number of seconds in a day (24 hours)
+const SECONDS_PER_DAY: u64 = 86400;
+
+/// Configuration structure for litra.toml
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+struct Config {
+    #[serde(default)]
+    update_check: UpdateCheckConfig,
+}
+
+/// Update check configuration
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+struct UpdateCheckConfig {
+    /// Unix timestamp of the last update check
+    last_check_timestamp: Option<u64>,
+}
+
+/// Returns the path to the litra.toml config file in the user's home directory
+#[cfg(feature = "cli")]
+fn get_config_path() -> Option<std::path::PathBuf> {
+    dirs::home_dir().map(|home| home.join(CONFIG_FILE_NAME))
+}
+
+/// Reads the config file, returning a default config if the file doesn't exist or can't be read
+#[cfg(feature = "cli")]
+fn read_config() -> Config {
+    let Some(config_path) = get_config_path() else {
+        return Config::default();
+    };
+
+    match std::fs::read_to_string(&config_path) {
+        Ok(contents) => toml::from_str(&contents).unwrap_or_default(),
+        Err(_) => Config::default(),
+    }
+}
+
+/// Writes the config to the config file, silently ignoring errors
+#[cfg(feature = "cli")]
+fn write_config(config: &Config) {
+    let Some(config_path) = get_config_path() else {
+        return;
+    };
+
+    if let Ok(contents) = toml::to_string_pretty(config) {
+        let _ = std::fs::write(&config_path, contents);
+    }
+}
+
+/// Returns the current Unix timestamp in seconds
+#[cfg(feature = "cli")]
+fn current_timestamp() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// Checks if enough time has passed since the last update check (at least one day)
+#[cfg(feature = "cli")]
+fn should_check_for_updates(config: &Config) -> bool {
+    let Some(last_check) = config.update_check.last_check_timestamp else {
+        return true; // Never checked before
+    };
+
+    let now = current_timestamp();
+    now.saturating_sub(last_check) >= SECONDS_PER_DAY
+}
+
+/// Environment variable to disable update checks
+const DISABLE_UPDATE_CHECK_ENV: &str = "LITRA_DISABLE_UPDATE_CHECK";
+
 /// Checks for updates by fetching the latest release from GitHub.
 /// Returns the latest version tag if a newer version is available, None otherwise.
 /// This function will timeout after 2 seconds and log a warning, but will not
 /// disrupt the CLI's normal operation.
+/// Set the LITRA_DISABLE_UPDATE_CHECK environment variable to any value to disable this check.
+/// The check is performed at most once per day, with the last check time stored in ~/litra.toml.
 #[cfg(feature = "cli")]
 fn check_for_updates() -> Option<String> {
+    // Check if update check is disabled via environment variable
+    if std::env::var(DISABLE_UPDATE_CHECK_ENV).is_ok() {
+        return None;
+    }
+
+    // Read config and check if we should perform the update check
+    let mut config = read_config();
+    if !should_check_for_updates(&config) {
+        return None;
+    }
+
+    // Update the last check timestamp regardless of the result
+    config.update_check.last_check_timestamp = Some(current_timestamp());
+    write_config(&config);
+
     let timeout = Duration::from_secs(UPDATE_CHECK_TIMEOUT_SECS);
 
     let agent = ureq::Agent::new_with_config(
@@ -1711,5 +1802,37 @@ mod tests {
         assert!(!is_newer_version("invalid", "3.2.0"));
         assert!(!is_newer_version("3.2.0", "invalid"));
         assert!(!is_newer_version("", "3.2.0"));
+    }
+
+    #[test]
+    fn test_should_check_for_updates_never_checked() {
+        // Should check if never checked before (no timestamp)
+        let config = Config::default();
+        assert!(should_check_for_updates(&config));
+    }
+
+    #[test]
+    fn test_should_check_for_updates_checked_recently() {
+        // Should not check if checked less than a day ago
+        let mut config = Config::default();
+        config.update_check.last_check_timestamp = Some(current_timestamp());
+        assert!(!should_check_for_updates(&config));
+    }
+
+    #[test]
+    fn test_should_check_for_updates_checked_long_ago() {
+        // Should check if checked more than a day ago
+        let mut config = Config::default();
+        // Set timestamp to more than a day ago
+        config.update_check.last_check_timestamp = Some(current_timestamp() - SECONDS_PER_DAY - 1);
+        assert!(should_check_for_updates(&config));
+    }
+
+    #[test]
+    fn test_should_check_for_updates_exactly_one_day() {
+        // Should check if exactly one day has passed
+        let mut config = Config::default();
+        config.update_check.last_check_timestamp = Some(current_timestamp() - SECONDS_PER_DAY);
+        assert!(should_check_for_updates(&config));
     }
 }
