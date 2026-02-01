@@ -1243,8 +1243,11 @@ fn handle_mcp_command() -> CliResult {
 /// The current version of the CLI, extracted from Cargo.toml
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// GitHub API URL for fetching the latest release
-const GITHUB_API_URL: &str = "https://api.github.com/repos/timrogers/litra-rs/releases/latest";
+/// GitHub API URL for fetching releases (list endpoint)
+const GITHUB_API_URL: &str = "https://api.github.com/repos/timrogers/litra-rs/releases";
+
+/// Minimum age in seconds for a release to be considered for update notifications (72 hours)
+const RELEASE_MIN_AGE_SECS: u64 = 72 * 60 * 60;
 
 /// Timeout for update check requests in seconds
 const UPDATE_CHECK_TIMEOUT_SECS: u64 = 2;
@@ -1253,6 +1256,7 @@ const UPDATE_CHECK_TIMEOUT_SECS: u64 = 2;
 #[derive(serde::Deserialize)]
 struct GitHubRelease {
     tag_name: String,
+    published_at: String,
 }
 
 /// Configuration file name
@@ -1326,15 +1330,82 @@ fn should_check_for_updates(config: &Config) -> bool {
     now.saturating_sub(last_check) >= SECONDS_PER_DAY
 }
 
+/// Checks if a release is old enough to be considered for update notifications (at least 72 hours)
+/// Uses simple string comparison since ISO 8601 timestamps sort lexicographically
+#[cfg(feature = "cli")]
+fn is_release_old_enough(published_at: &str) -> bool {
+    // Get current time and calculate the cutoff (72 hours ago)
+    let now = current_timestamp();
+    let cutoff_timestamp = now.saturating_sub(RELEASE_MIN_AGE_SECS);
+
+    // Convert cutoff to ISO 8601 format for comparison
+    let cutoff_iso = timestamp_to_iso8601(cutoff_timestamp);
+
+    // ISO 8601 timestamps can be compared lexicographically
+    published_at <= cutoff_iso.as_str()
+}
+
+/// Converts a Unix timestamp to an ISO 8601 formatted string (simplified, UTC only)
+#[cfg(feature = "cli")]
+fn timestamp_to_iso8601(timestamp: u64) -> String {
+    // Calculate date components from Unix timestamp
+    let secs_per_day: u64 = 86400;
+    let mut remaining_days = timestamp / secs_per_day;
+    let day_seconds = timestamp % secs_per_day;
+
+    let hours = day_seconds / 3600;
+    let minutes = (day_seconds % 3600) / 60;
+    let seconds = day_seconds % 60;
+
+    // Calculate year, month, day from days since epoch
+    let mut year = 1970u32;
+    loop {
+        let days_in_year = if is_leap_year(year) { 366 } else { 365 };
+        if remaining_days < days_in_year {
+            break;
+        }
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+
+    let days_in_months: [u64; 12] = if is_leap_year(year) {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+
+    let mut month = 1u32;
+    for days in days_in_months {
+        if remaining_days < days {
+            break;
+        }
+        remaining_days -= days;
+        month += 1;
+    }
+
+    let day = remaining_days + 1;
+
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, hours, minutes, seconds
+    )
+}
+
+/// Returns true if the year is a leap year
+fn is_leap_year(year: u32) -> bool {
+    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
+}
+
 /// Environment variable to disable update checks
 const DISABLE_UPDATE_CHECK_ENV: &str = "LITRA_DISABLE_UPDATE_CHECK";
 
-/// Checks for updates by fetching the latest release from GitHub.
+/// Checks for updates by fetching releases from GitHub.
 /// Returns the latest version tag if a newer version is available, None otherwise.
 /// This function will timeout after 2 seconds and log a warning, but will not
 /// disrupt the CLI's normal operation.
 /// Set the LITRA_DISABLE_UPDATE_CHECK environment variable to any value to disable this check.
 /// The check is performed at most once per day, with the last check time stored in ~/litra.toml.
+/// Only releases that are at least 72 hours old are considered.
 #[cfg(feature = "cli")]
 fn check_for_updates() -> Option<String> {
     // Check if update check is disabled via environment variable
@@ -1379,20 +1450,32 @@ fn check_for_updates() -> Option<String> {
         }
     };
 
-    let release: GitHubRelease = match response.body_mut().read_json() {
-        Ok(release) => release,
+    let releases: Vec<GitHubRelease> = match response.body_mut().read_json() {
+        Ok(releases) => releases,
         Err(_) => return None,
     };
 
-    // Extract version from tag_name (e.g., "v3.2.0" -> "3.2.0")
-    let latest_version = release.tag_name.trim_start_matches('v');
+    // Find the first release that is at least 72 hours old and newer than the current version
+    for release in releases {
+        // Skip releases that are too new (less than 72 hours old)
+        if !is_release_old_enough(&release.published_at) {
+            continue;
+        }
 
-    // Compare versions - only notify if the latest version is different and newer
-    if is_newer_version(latest_version, CURRENT_VERSION) {
-        Some(release.tag_name)
-    } else {
-        None
+        // Extract version from tag_name (e.g., "v3.2.0" -> "3.2.0")
+        let release_version = release.tag_name.trim_start_matches('v');
+
+        // Check if this release is newer than the current version
+        if is_newer_version(release_version, CURRENT_VERSION) {
+            return Some(release.tag_name);
+        }
+
+        // If we found a release old enough but not newer, stop looking
+        // (releases are sorted by date, newest first)
+        break;
     }
+
+    None
 }
 
 /// Compares two semantic version strings to determine if `latest` is newer than `current`.
@@ -1423,18 +1506,21 @@ fn is_newer_version(latest: &str, current: &str) -> bool {
     }
 }
 
+/// Generates the update notification message for the given version
+#[cfg(feature = "cli")]
+fn format_update_message(latest_version: &str) -> String {
+    format!(
+        "A new version of litra is available: {} (current: v{})\n\
+         Download it from: https://github.com/timrogers/litra-rs/releases/tag/{}",
+        latest_version, CURRENT_VERSION, latest_version
+    )
+}
+
 #[cfg(feature = "cli")]
 fn main() -> ExitCode {
     // Check for updates in the background - this should not block or fail the CLI
     if let Some(latest_version) = check_for_updates() {
-        eprintln!(
-            "A new version of litra is available: {} (current: v{})",
-            latest_version, CURRENT_VERSION
-        );
-        eprintln!(
-            "Download it from: https://github.com/timrogers/litra-rs/releases/tag/{}",
-            latest_version
-        );
+        eprintln!("{}", format_update_message(&latest_version));
     }
 
     let args = Cli::parse();
@@ -1834,5 +1920,46 @@ mod tests {
         let mut config = Config::default();
         config.update_check.last_check_timestamp = Some(current_timestamp() - SECONDS_PER_DAY);
         assert!(should_check_for_updates(&config));
+    }
+
+    #[test]
+    fn test_timestamp_to_iso8601() {
+        // Test a known timestamp (2024-01-01T00:00:00Z = 1704067200)
+        let iso = timestamp_to_iso8601(1704067200);
+        assert_eq!(iso, "2024-01-01T00:00:00Z");
+
+        // Test another timestamp
+        let iso = timestamp_to_iso8601(0);
+        assert_eq!(iso, "1970-01-01T00:00:00Z");
+    }
+
+    #[test]
+    fn test_is_release_old_enough() {
+        // A release from far in the past should be old enough
+        assert!(is_release_old_enough("2020-01-01T00:00:00Z"));
+
+        // A release from far in the future should not be old enough
+        assert!(!is_release_old_enough("2099-01-01T00:00:00Z"));
+    }
+
+    #[test]
+    fn test_format_update_message() {
+        let message = format_update_message("v3.3.0");
+        assert!(message.contains("v3.3.0"));
+        assert!(message.contains(CURRENT_VERSION));
+        assert!(message.contains("https://github.com/timrogers/litra-rs/releases/tag/v3.3.0"));
+    }
+
+    #[test]
+    fn test_is_leap_year() {
+        // Leap years
+        assert!(is_leap_year(2000)); // Divisible by 400
+        assert!(is_leap_year(2004)); // Divisible by 4, not by 100
+        assert!(is_leap_year(2020)); // Divisible by 4, not by 100
+
+        // Not leap years
+        assert!(!is_leap_year(1900)); // Divisible by 100, not by 400
+        assert!(!is_leap_year(2001)); // Not divisible by 4
+        assert!(!is_leap_year(2100)); // Divisible by 100, not by 400
     }
 }
