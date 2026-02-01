@@ -1455,7 +1455,10 @@ fn check_for_updates() -> Option<String> {
         Err(_) => return None,
     };
 
-    // Find the first release that is at least 72 hours old and newer than the current version
+    // Find the newest release that is at least 72 hours old and newer than the current version
+    // Releases are sorted by date (newest first), but we need the highest version that's old enough
+    let mut best_version: Option<String> = None;
+
     for release in releases {
         // Skip releases that are too new (less than 72 hours old)
         if !is_release_old_enough(&release.published_at) {
@@ -1467,15 +1470,20 @@ fn check_for_updates() -> Option<String> {
 
         // Check if this release is newer than the current version
         if is_newer_version(release_version, CURRENT_VERSION) {
-            return Some(release.tag_name);
+            // Check if this is better than our current best
+            match &best_version {
+                None => best_version = Some(release.tag_name),
+                Some(current_best) => {
+                    let current_best_version = current_best.trim_start_matches('v');
+                    if is_newer_version(release_version, current_best_version) {
+                        best_version = Some(release.tag_name);
+                    }
+                }
+            }
         }
-
-        // If we found a release old enough but not newer, stop looking
-        // (releases are sorted by date, newest first)
-        break;
     }
 
-    None
+    best_version
 }
 
 /// Compares two semantic version strings to determine if `latest` is newer than `current`.
