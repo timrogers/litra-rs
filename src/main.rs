@@ -1246,9 +1246,6 @@ const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// GitHub API URL for fetching releases (list endpoint)
 const GITHUB_API_URL: &str = "https://api.github.com/repos/timrogers/litra-rs/releases";
 
-/// Minimum age in seconds for a release to be considered for update notifications (72 hours)
-const RELEASE_MIN_AGE_SECS: u64 = 72 * 60 * 60;
-
 /// Timeout for update check requests in seconds
 const UPDATE_CHECK_TIMEOUT_SECS: u64 = 2;
 
@@ -1331,69 +1328,21 @@ fn should_check_for_updates(config: &Config) -> bool {
 }
 
 /// Checks if a release is old enough to be considered for update notifications (at least 72 hours)
-/// Uses simple string comparison since ISO 8601 timestamps sort lexicographically
+/// Uses chrono for ISO 8601 parsing and comparison
 #[cfg(feature = "cli")]
 fn is_release_old_enough(published_at: &str) -> bool {
-    // Get current time and calculate the cutoff (72 hours ago)
-    let now = current_timestamp();
-    let cutoff_timestamp = now.saturating_sub(RELEASE_MIN_AGE_SECS);
+    use chrono::{DateTime, Duration, Utc};
 
-    // Convert cutoff to ISO 8601 format for comparison
-    let cutoff_iso = timestamp_to_iso8601(cutoff_timestamp);
-
-    // ISO 8601 timestamps can be compared lexicographically
-    published_at <= cutoff_iso.as_str()
-}
-
-/// Converts a Unix timestamp to an ISO 8601 formatted string (simplified, UTC only)
-#[cfg(feature = "cli")]
-fn timestamp_to_iso8601(timestamp: u64) -> String {
-    // Calculate date components from Unix timestamp
-    let secs_per_day: u64 = 86400;
-    let mut remaining_days = timestamp / secs_per_day;
-    let day_seconds = timestamp % secs_per_day;
-
-    let hours = day_seconds / 3600;
-    let minutes = (day_seconds % 3600) / 60;
-    let seconds = day_seconds % 60;
-
-    // Calculate year, month, day from days since epoch
-    let mut year = 1970u32;
-    loop {
-        let days_in_year = if is_leap_year(year) { 366 } else { 365 };
-        if remaining_days < days_in_year {
-            break;
-        }
-        remaining_days -= days_in_year;
-        year += 1;
-    }
-
-    let days_in_months: [u64; 12] = if is_leap_year(year) {
-        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    } else {
-        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    // Parse the release timestamp
+    let Ok(release_time) = DateTime::parse_from_rfc3339(published_at) else {
+        return false; // If we can't parse the timestamp, skip this release
     };
 
-    let mut month = 1u32;
-    for days in days_in_months {
-        if remaining_days < days {
-            break;
-        }
-        remaining_days -= days;
-        month += 1;
-    }
+    // Calculate the cutoff time (72 hours ago)
+    let cutoff = Utc::now() - Duration::hours(72);
 
-    let day = remaining_days + 1;
-
-    format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
-        year, month, day, hours, minutes, seconds
-    )
-}
-
-/// Returns true if the year is a leap year
-fn is_leap_year(year: u32) -> bool {
-    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
+    // Check if the release is older than the cutoff
+    release_time < cutoff
 }
 
 /// Environment variable to disable update checks
@@ -1931,23 +1880,15 @@ mod tests {
     }
 
     #[test]
-    fn test_timestamp_to_iso8601() {
-        // Test a known timestamp (2024-01-01T00:00:00Z = 1704067200)
-        let iso = timestamp_to_iso8601(1704067200);
-        assert_eq!(iso, "2024-01-01T00:00:00Z");
-
-        // Test another timestamp
-        let iso = timestamp_to_iso8601(0);
-        assert_eq!(iso, "1970-01-01T00:00:00Z");
-    }
-
-    #[test]
     fn test_is_release_old_enough() {
         // A release from far in the past should be old enough
         assert!(is_release_old_enough("2020-01-01T00:00:00Z"));
 
         // A release from far in the future should not be old enough
         assert!(!is_release_old_enough("2099-01-01T00:00:00Z"));
+
+        // An invalid timestamp should not be old enough (returns false)
+        assert!(!is_release_old_enough("invalid"));
     }
 
     #[test]
@@ -1956,18 +1897,5 @@ mod tests {
         assert!(message.contains("v3.3.0"));
         assert!(message.contains(CURRENT_VERSION));
         assert!(message.contains("https://github.com/timrogers/litra-rs/releases/tag/v3.3.0"));
-    }
-
-    #[test]
-    fn test_is_leap_year() {
-        // Leap years
-        assert!(is_leap_year(2000)); // Divisible by 400
-        assert!(is_leap_year(2004)); // Divisible by 4, not by 100
-        assert!(is_leap_year(2020)); // Divisible by 4, not by 100
-
-        // Not leap years
-        assert!(!is_leap_year(1900)); // Divisible by 100, not by 400
-        assert!(!is_leap_year(2001)); // Not divisible by 4
-        assert!(!is_leap_year(2100)); // Divisible by 100, not by 400
     }
 }
