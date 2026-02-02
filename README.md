@@ -92,6 +92,12 @@ The following commands are also included:
 
 Each CLI command can also be called with `--help` for more detailed documentation.
 
+#### Automatic update check
+
+The CLI automatically checks for updates once per day. If a new version is found, it will print details on how to upgrade.
+
+You can disable this behavior by setting the `LITRA_DISABLE_UPDATE_CHECK` environment variable.
+
 ### From a Model Context Protocol (MCP) client
 
 Running the `litra mcp` command starts a local Model Context Protocol (MCP) server, exposing tools to allow you to control your Litra devices from AI applications and agents.
