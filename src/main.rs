@@ -1468,7 +1468,8 @@ fn is_newer_version(latest: &str, current: &str) -> bool {
 fn format_update_message(latest_version: &str) -> String {
     format!(
         "A new version of litra is available: {} (current: v{})\n\
-         Download it from: https://github.com/timrogers/litra-rs/releases/tag/{}",
+         If you installed Litra from Homebrew, you can upgrade by running `brew upgrade litra`\n\
+         Otherwise, you can download the latest release at  https://github.com/timrogers/litra-rs/releases/tag/{}",
         latest_version, CURRENT_VERSION, latest_version
     )
 }
