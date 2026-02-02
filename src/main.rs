@@ -48,7 +48,11 @@ mod mcp;
 /// Control your USB-connected Logitech Litra lights from the command line
 #[cfg(feature = "cli")]
 #[derive(Debug, Parser)]
-#[clap(name = "litra", version)]
+#[clap(
+    name = "litra",
+    version,
+    after_long_help = "This CLI automatically checks for updates once per day. To disable update checks, set the LITRA_DISABLE_UPDATE_CHECK environment variable to any value."
+)]
 struct Cli {
     #[clap(subcommand)]
     command: Commands,
