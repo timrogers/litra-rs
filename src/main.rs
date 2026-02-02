@@ -1257,7 +1257,7 @@ struct GitHubRelease {
 }
 
 /// Configuration file name
-const CONFIG_FILE_NAME: &str = "litra.toml";
+const CONFIG_FILE_NAME: &str = ".litra.toml";
 
 /// Number of seconds in a day (24 hours)
 const SECONDS_PER_DAY: u64 = 86400;
@@ -1353,7 +1353,7 @@ const DISABLE_UPDATE_CHECK_ENV: &str = "LITRA_DISABLE_UPDATE_CHECK";
 /// This function will timeout after 2 seconds and log a warning, but will not
 /// disrupt the CLI's normal operation.
 /// Set the LITRA_DISABLE_UPDATE_CHECK environment variable to any value to disable this check.
-/// The check is performed at most once per day, with the last check time stored in ~/litra.toml.
+/// The check is performed at most once per day, with the last check time stored in ~/.litra.toml.
 /// Only releases that are at least 72 hours old are considered.
 #[cfg(feature = "cli")]
 fn check_for_updates() -> Option<String> {
