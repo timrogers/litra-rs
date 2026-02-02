@@ -7,6 +7,8 @@ use std::str::FromStr;
 use std::time::Duration;
 
 #[cfg(feature = "cli")]
+use colored::Colorize;
+#[cfg(feature = "cli")]
 use tabled::{Table, Tabled};
 
 // Custom parser for DeviceType
@@ -1472,6 +1474,8 @@ fn format_update_message(latest_version: &str) -> String {
          Otherwise, you can download the latest release at  https://github.com/timrogers/litra-rs/releases/tag/{}",
         latest_version, CURRENT_VERSION, latest_version
     )
+    .green()
+    .to_string()
 }
 
 #[cfg(feature = "cli")]
