@@ -33,7 +33,7 @@ brew install litra  # That's it!
 ```
 
 #### Multi-Architecture Support
-- Added ARM64 Windows support, extending compatibility beyond AMD64
+- Added ARM64 Windows support, extending compatibility beyond x86_64
 - Continued support for macOS, Linux, and Windows across different architectures
 
 ### Automatic Update Checks
