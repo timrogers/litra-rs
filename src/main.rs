@@ -1185,15 +1185,17 @@ fn handle_back_toggle_command(serial_number: Option<&str>, device_path: Option<&
     Ok(())
 }
 
-fn handle_back_brightness_up_command(
+/// Generic helper function for back brightness adjustments
+fn with_back_brightness_adjustment<F>(
     serial_number: Option<&str>,
     device_path: Option<&str>,
     percentage: u8,
-) -> CliResult {
-    // Get context to work with devices
+    adjust_fn: F,
+) -> CliResult
+where
+    F: Fn(u8, u8) -> u8,
+{
     let context = Litra::new()?;
-
-    // Get all matched devices (only Litra Beam LX supports back light)
     let devices = get_all_supported_devices(
         &context,
         serial_number,
@@ -1206,11 +1208,21 @@ fn handle_back_brightness_up_command(
 
     for device_handle in devices {
         if let Ok(current_brightness) = device_handle.back_brightness_percentage() {
-            let new_brightness = current_brightness.saturating_add(percentage).min(100);
+            let new_brightness = adjust_fn(current_brightness, percentage);
             let _ = device_handle.set_back_brightness_percentage(new_brightness);
         }
     }
     Ok(())
+}
+
+fn handle_back_brightness_up_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    percentage: u8,
+) -> CliResult {
+    with_back_brightness_adjustment(serial_number, device_path, percentage, |current, delta| {
+        current.saturating_add(delta).min(100)
+    })
 }
 
 fn handle_back_brightness_down_command(
@@ -1218,27 +1230,9 @@ fn handle_back_brightness_down_command(
     device_path: Option<&str>,
     percentage: u8,
 ) -> CliResult {
-    // Get context to work with devices
-    let context = Litra::new()?;
-
-    // Get all matched devices (only Litra Beam LX supports back light)
-    let devices = get_all_supported_devices(
-        &context,
-        serial_number,
-        device_path,
-        Some(&DeviceType::LitraBeamLX),
-    )?;
-    if devices.is_empty() {
-        return Err(CliError::DeviceNotFound);
-    }
-
-    for device_handle in devices {
-        if let Ok(current_brightness) = device_handle.back_brightness_percentage() {
-            let new_brightness = current_brightness.saturating_sub(percentage).max(1);
-            let _ = device_handle.set_back_brightness_percentage(new_brightness);
-        }
-    }
-    Ok(())
+    with_back_brightness_adjustment(serial_number, device_path, percentage, |current, delta| {
+        current.saturating_sub(delta).max(1)
+    })
 }
 
 #[cfg(feature = "mcp")]
