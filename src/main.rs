@@ -1249,8 +1249,8 @@ fn handle_mcp_command() -> CliResult {
 /// The current version of the CLI, extracted from Cargo.toml
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// GitHub API URL for fetching releases (list endpoint)
-const GITHUB_API_URL: &str = "https://api.github.com/repos/timrogers/litra-rs/releases";
+/// GitHub API URL for fetching releases (list endpoint, limited to 10 most recent)
+const GITHUB_API_URL: &str = "https://api.github.com/repos/timrogers/litra-rs/releases?per_page=10";
 
 /// Timeout for update check requests in seconds
 const UPDATE_CHECK_TIMEOUT_SECS: u64 = 2;
@@ -1260,6 +1260,8 @@ const UPDATE_CHECK_TIMEOUT_SECS: u64 = 2;
 struct GitHubRelease {
     tag_name: String,
     published_at: String,
+    draft: bool,
+    prerelease: bool,
 }
 
 /// Configuration file name
@@ -1410,11 +1412,20 @@ fn check_for_updates() -> Option<String> {
         Err(_) => return None,
     };
 
-    // Find the newest release that is at least 72 hours old and newer than the current version
-    // Releases are sorted by date (newest first), but we need the highest version that's old enough
+    find_best_update_version(&releases, CURRENT_VERSION)
+}
+
+/// Finds the best (highest) version from a list of releases that is newer than the current version.
+/// Filters out drafts, pre-releases, and releases that are less than 72 hours old.
+fn find_best_update_version(releases: &[GitHubRelease], current_version: &str) -> Option<String> {
     let mut best_version: Option<String> = None;
 
     for release in releases {
+        // Skip draft and pre-release versions
+        if release.draft || release.prerelease {
+            continue;
+        }
+
         // Skip releases that are too new (less than 72 hours old)
         if !is_release_old_enough(&release.published_at) {
             continue;
@@ -1424,14 +1435,14 @@ fn check_for_updates() -> Option<String> {
         let release_version = release.tag_name.trim_start_matches('v');
 
         // Check if this release is newer than the current version
-        if is_newer_version(release_version, CURRENT_VERSION) {
+        if is_newer_version(release_version, current_version) {
             // Check if this is better than our current best
             match &best_version {
-                None => best_version = Some(release.tag_name),
+                None => best_version = Some(release.tag_name.clone()),
                 Some(current_best) => {
                     let current_best_version = current_best.trim_start_matches('v');
                     if is_newer_version(release_version, current_best_version) {
-                        best_version = Some(release.tag_name);
+                        best_version = Some(release.tag_name.clone());
                     }
                 }
             }
@@ -1484,12 +1495,10 @@ fn format_update_message(latest_version: &str) -> String {
 
 #[cfg(feature = "cli")]
 fn main() -> ExitCode {
-    // Check for updates in the background - this should not block or fail the CLI
-    if let Some(latest_version) = check_for_updates() {
-        eprintln!("{}", format_update_message(&latest_version));
-    }
-
     let args = Cli::parse();
+
+    // Check for updates after parsing args so --help/--version aren't delayed
+    let update_message = check_for_updates().map(|v| format_update_message(&v));
 
     let result = match &args.command {
         Commands::Devices { json } => handle_devices_command(*json),
@@ -1654,12 +1663,19 @@ fn main() -> ExitCode {
         Commands::Mcp => handle_mcp_command(),
     };
 
-    if let Err(error) = result {
+    let exit_code = if let Err(error) = result {
         eprintln!("{}", error);
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
+    };
+
+    // Print update notification after command output so it doesn't delay or obscure results
+    if let Some(message) = update_message {
+        eprintln!("{}", message);
     }
+
+    exit_code
 }
 
 #[cfg(test)]
@@ -1906,5 +1922,77 @@ mod tests {
         assert!(message.contains("v3.3.0"));
         assert!(message.contains(CURRENT_VERSION));
         assert!(message.contains("https://github.com/timrogers/litra-rs/releases/tag/v3.3.0"));
+    }
+
+    /// Helper to create a GitHubRelease for testing
+    fn make_release(tag: &str, published_at: &str, draft: bool, prerelease: bool) -> GitHubRelease {
+        GitHubRelease {
+            tag_name: tag.to_string(),
+            published_at: published_at.to_string(),
+            draft,
+            prerelease,
+        }
+    }
+
+    #[test]
+    fn test_find_best_update_version_skips_drafts() {
+        let releases = vec![make_release("v99.0.0", "2020-01-01T00:00:00Z", true, false)];
+        assert_eq!(find_best_update_version(&releases, "1.0.0"), None);
+    }
+
+    #[test]
+    fn test_find_best_update_version_skips_prereleases() {
+        let releases = vec![make_release("v99.0.0", "2020-01-01T00:00:00Z", false, true)];
+        assert_eq!(find_best_update_version(&releases, "1.0.0"), None);
+    }
+
+    #[test]
+    fn test_find_best_update_version_returns_newest_stable() {
+        let releases = vec![
+            make_release("v5.0.0", "2020-01-01T00:00:00Z", false, true), // prerelease
+            make_release("v4.0.0", "2020-01-01T00:00:00Z", false, false), // stable
+            make_release("v3.5.0", "2020-01-01T00:00:00Z", true, false), // draft
+            make_release("v3.1.0", "2020-01-01T00:00:00Z", false, false), // stable but lower
+        ];
+        assert_eq!(
+            find_best_update_version(&releases, "3.0.0"),
+            Some("v4.0.0".to_string())
+        );
+    }
+
+    #[test]
+    fn test_find_best_update_version_skips_too_new_releases() {
+        let releases = vec![make_release(
+            "v99.0.0",
+            "2099-01-01T00:00:00Z",
+            false,
+            false,
+        )];
+        assert_eq!(find_best_update_version(&releases, "1.0.0"), None);
+    }
+
+    #[test]
+    fn test_find_best_update_version_no_newer_version() {
+        let releases = vec![make_release("v1.0.0", "2020-01-01T00:00:00Z", false, false)];
+        assert_eq!(find_best_update_version(&releases, "2.0.0"), None);
+    }
+
+    #[test]
+    fn test_find_best_update_version_empty_releases() {
+        let releases: Vec<GitHubRelease> = vec![];
+        assert_eq!(find_best_update_version(&releases, "1.0.0"), None);
+    }
+
+    #[test]
+    fn test_find_best_update_version_picks_highest_among_multiple() {
+        let releases = vec![
+            make_release("v4.2.0", "2020-01-01T00:00:00Z", false, false),
+            make_release("v4.0.0", "2020-01-01T00:00:00Z", false, false),
+            make_release("v4.1.0", "2020-01-01T00:00:00Z", false, false),
+        ];
+        assert_eq!(
+            find_best_update_version(&releases, "3.0.0"),
+            Some("v4.2.0".to_string())
+        );
     }
 }
