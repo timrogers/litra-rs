@@ -423,10 +423,7 @@ impl DeviceHandle {
     pub fn set_color(&self, red: u8, green: u8, blue: u8) -> DeviceResult<()> {
         let temperature = rgb_to_color_temperature(red, green, blue);
 
-        // Clamp to device range and round to nearest 100
-        let temperature = temperature
-            .max(self.minimum_temperature_in_kelvin())
-            .min(self.maximum_temperature_in_kelvin());
+        // Round to nearest 100 and clamp to device range
         let temperature = ((temperature + 50) / 100) * 100;
         let temperature = temperature
             .max(self.minimum_temperature_in_kelvin())
@@ -806,7 +803,8 @@ mod tests {
 
     #[test]
     fn test_rgb_to_color_temperature_pure_white() {
-        // Pure white (255,255,255) corresponds to D65 illuminant (~6500K)
+        // Pure white (255,255,255) corresponds to the D65 illuminant (~6500K).
+        // McCamy's approximation may not produce exactly 6500K, so we accept a range.
         let temp = rgb_to_color_temperature(255, 255, 255);
         assert!(
             (6000..=6500).contains(&temp),
