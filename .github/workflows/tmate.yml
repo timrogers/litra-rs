@@ -11,5 +11,5 @@ jobs:
       APPLE_SIGNING_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_KEY_PASSWORD }}
       APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: mxschmitt/action-tmate@v3
