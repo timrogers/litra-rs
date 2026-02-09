@@ -6,6 +6,10 @@ on:
 jobs:
   tmate:
     runs-on: ubuntu-latest
+    env:
+      APPLE_SIGNING_KEY_P12: ${{ secrets.APPLE_SIGNING_KEY_P12 }}
+      APPLE_SIGNING_KEY_PASSWORD: ${{ secrets.APPLE_SIGNING_KEY_PASSWORD }}
+      APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: mxschmitt/action-tmate@v3
