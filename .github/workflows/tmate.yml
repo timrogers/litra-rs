@@ -1,0 +1,11 @@
+name: SSH Debug (tmate)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  tmate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mxschmitt/action-tmate@v3
