@@ -72,6 +72,7 @@ The following commands are available for controlling your devices:
 - `litra temperature`: Sets the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The temperature can be set to any multiple of 100 between the minimum and maximum for the device returned by the `devices` command.
 - `litra temperature-up`: Increases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
 - `litra temperature-down`: Decreases the temperature of your Logitech Litra device, using a `--value` measured in kelvin (K). The value must be a multiple of 100.
+- `litra color`: Sets the color of your Logitech Litra device, using `--color` (a named color) or `--value` (a hexadecimal color code, e.g. `FF8000` for warm white). The color will be converted to the nearest supported color temperature.
 - `litra back-on`: Turn on the colorful backlight on your Logitech Litra Beam LX device
 - `litra back-off`: Turn off the colorful backlight on your Logitech Litra Beam LX device
 - `litra back-toggle`: Toggles the colorful backlight on your Logitech Litra Beam LX device on or off
@@ -139,6 +140,7 @@ The following tools are available:
 - `litra_temperature`: Sets the temperature of your Logitech Litra device to a specific value measured in kelvin (K). The temperature can be set to any multiple of 100 between the minimum and maximum for the device returned by the `litra_devices` tool.
 - `litra_temperature_up`: Increases the temperature of your Logitech Litra device, using a specific value measured in kelvin (K). The value must be a multiple of 100.
 - `litra_temperature_down`: Decreases the temperature of your Logitech Litra device, using a specific measured in kelvin (K). The value must be a multiple of 100.
+- `litra_color`: Sets the color of your Logitech Litra device by providing a hexadecimal color code. The color will be converted to the nearest supported color temperature.
 - `litra_back_on`: Turn on the back light on your Logitech Litra Beam LX device
 - `litra_back_off`: Turn off the back light on your Logitech Litra Beam LX device
 - `litra_back_toggle`: Toggles the back light on your Logitech Litra Beam LX device on or off

@@ -16,9 +16,10 @@ use crate::{
     get_connected_devices, handle_back_brightness_command, handle_back_brightness_down_command,
     handle_back_brightness_up_command, handle_back_color_command, handle_back_off_command,
     handle_back_on_command, handle_back_toggle_command, handle_brightness_command,
-    handle_brightness_down_command, handle_brightness_up_command, handle_off_command,
-    handle_on_command, handle_temperature_command, handle_temperature_down_command,
-    handle_temperature_up_command, handle_toggle_command, CliError, CliResult, DeviceInfo,
+    handle_brightness_down_command, handle_brightness_up_command, handle_color_command,
+    handle_off_command, handle_on_command, handle_temperature_command,
+    handle_temperature_down_command, handle_temperature_up_command, handle_toggle_command,
+    CliError, CliResult, DeviceInfo,
 };
 
 /// Wrapper struct for device list to satisfy MCP's requirement for object root type
@@ -67,6 +68,18 @@ pub struct LitraTemperatureParams {
     pub device_type: Option<String>,
     /// The temperature value in Kelvin (must be a multiple of 100 between 2700K and 6500K)
     pub value: u16,
+}
+
+#[derive(serde::Deserialize, schemars::JsonSchema)]
+pub struct LitraColorParams {
+    /// The serial number of the device to target (optional - if not specified, all devices are targeted)
+    pub serial_number: Option<String>,
+    /// The device path to target (optional - useful for devices that don't show a serial number)
+    pub device_path: Option<String>,
+    /// The device type to target: "litra_glow", "litra_beam", or "litra_beam_lx" (optional)
+    pub device_type: Option<String>,
+    /// The color in hex format (e.g., "#FF0000" for red)
+    pub hex: String,
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -332,6 +345,31 @@ impl LitraMcpServer {
         ) {
             Ok(()) => Ok(CallToolResult::success(vec![Content::text(
                 "Temperature decreased successfully for device(s)",
+            )])),
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
+        }
+    }
+
+    #[tool(
+        description = "Set the color of Logitech Litra device(s) by providing a hex color code. The color will be converted to the nearest supported color temperature. By default, all devices will be targeted, but you can optionally specify a serial number, device path, or device type.",
+        annotations(
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
+    )]
+    async fn litra_color(
+        &self,
+        Parameters(params): Parameters<LitraColorParams>,
+    ) -> Result<CallToolResult, McpError> {
+        match handle_color_command(
+            params.serial_number.as_deref(),
+            params.device_path.as_deref(),
+            parse_device_type(params.device_type.as_ref()).as_ref(),
+            &params.hex,
+        ) {
+            Ok(()) => Ok(CallToolResult::success(vec![Content::text(
+                "Color set successfully for device(s)",
             )])),
             Err(e) => Ok(CallToolResult::error(vec![Content::text(e.to_string())])),
         }

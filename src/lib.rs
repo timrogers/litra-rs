@@ -414,6 +414,24 @@ impl DeviceHandle {
         MAXIMUM_TEMPERATURE_IN_KELVIN
     }
 
+    /// Sets the device's color from RGB values by converting to the nearest color temperature.
+    ///
+    /// This converts the given RGB color to an approximate correlated color temperature (CCT)
+    /// and sets the device's temperature accordingly. The RGB values are interpreted as a white
+    /// point color, and the resulting temperature is clamped to the device's supported range
+    /// (2700K-6500K) and rounded to the nearest 100K.
+    pub fn set_color(&self, red: u8, green: u8, blue: u8) -> DeviceResult<()> {
+        let temperature = rgb_to_color_temperature(red, green, blue);
+
+        // Round to nearest 100 and clamp to device range
+        let temperature = ((temperature + 50) / 100) * 100;
+        let temperature = temperature
+            .max(self.minimum_temperature_in_kelvin())
+            .min(self.maximum_temperature_in_kelvin());
+
+        self.set_temperature_in_kelvin(temperature)
+    }
+
     /// Sets the color of one or more of the zones on the colorful back side of the Litra Beam LX. Only Litra Beam LX devices are supported.
     pub fn set_back_color(&self, zone_id: u8, red: u8, green: u8, blue: u8) -> DeviceResult<()> {
         if self.device_type != DeviceType::LitraBeamLX {
@@ -722,4 +740,106 @@ fn generate_get_back_brightness_percentage_bytes() -> [u8; 20] {
         0x11, 0xff, 0x0a, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00,
     ]
+}
+
+/// Converts an RGB color to an approximate correlated color temperature (CCT) in Kelvin.
+///
+/// Uses McCamy's approximation formula to estimate the color temperature from RGB values.
+/// The result is clamped to the range 2700K-6500K supported by Litra devices.
+fn rgb_to_color_temperature(red: u8, green: u8, blue: u8) -> u16 {
+    // Normalize RGB to 0.0-1.0
+    let r = f64::from(red) / 255.0;
+    let g = f64::from(green) / 255.0;
+    let b = f64::from(blue) / 255.0;
+
+    // Convert to CIE XYZ using sRGB matrix
+    let x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b;
+    let y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
+    let z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b;
+
+    let sum = x + y + z;
+    if sum == 0.0 {
+        return MINIMUM_TEMPERATURE_IN_KELVIN;
+    }
+
+    // Convert to CIE chromaticity coordinates
+    let cx = x / sum;
+    let cy = y / sum;
+
+    // McCamy's approximation for CCT
+    let n = (cx - 0.3320) / (0.1858 - cy);
+    let cct = 449.0 * n * n * n + 3525.0 * n * n + 6823.3 * n + 5520.33;
+
+    let cct = cct.round() as i32;
+    cct.max(MINIMUM_TEMPERATURE_IN_KELVIN as i32)
+        .min(MAXIMUM_TEMPERATURE_IN_KELVIN as i32) as u16
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rgb_to_color_temperature_warm_white() {
+        // Warm white colors should produce lower temperature values
+        let temp = rgb_to_color_temperature(255, 147, 41);
+        assert!(
+            temp <= 3500,
+            "Warm white should be below 3500K, got {}",
+            temp
+        );
+    }
+
+    #[test]
+    fn test_rgb_to_color_temperature_cool_white() {
+        // Cool/blue-ish white should produce higher temperature values
+        let temp = rgb_to_color_temperature(201, 226, 255);
+        assert!(
+            temp >= 5000,
+            "Cool white should be above 5000K, got {}",
+            temp
+        );
+    }
+
+    #[test]
+    fn test_rgb_to_color_temperature_pure_white() {
+        // Pure white (255,255,255) corresponds to the D65 illuminant (~6500K).
+        // McCamy's approximation may not produce exactly 6500K, so we accept a range.
+        let temp = rgb_to_color_temperature(255, 255, 255);
+        assert!(
+            (6000..=6500).contains(&temp),
+            "Pure white should be around 6500K, got {}",
+            temp
+        );
+    }
+
+    #[test]
+    fn test_rgb_to_color_temperature_black() {
+        // Black should return minimum temperature
+        let temp = rgb_to_color_temperature(0, 0, 0);
+        assert_eq!(temp, MINIMUM_TEMPERATURE_IN_KELVIN);
+    }
+
+    #[test]
+    fn test_rgb_to_color_temperature_clamped_to_range() {
+        // Any result should be within the device range
+        let test_cases = [
+            (255, 0, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (255, 255, 0),
+            (128, 128, 128),
+        ];
+        for (r, g, b) in test_cases {
+            let temp = rgb_to_color_temperature(r, g, b);
+            assert!(
+                (MINIMUM_TEMPERATURE_IN_KELVIN..=MAXIMUM_TEMPERATURE_IN_KELVIN).contains(&temp),
+                "Temperature {} for ({},{},{}) out of range",
+                temp,
+                r,
+                g,
+                b
+            );
+        }
+    }
 }
