@@ -871,28 +871,44 @@ fn handle_off_command(
     })
 }
 
-fn handle_toggle_command(
+/// Generic helper function for toggling device state
+fn with_toggle<FGet, FSet>(
     serial_number: Option<&str>,
     device_path: Option<&str>,
     device_type: Option<&DeviceType>,
-) -> CliResult {
-    // Get context to work with devices
+    get_state: FGet,
+    set_state: FSet,
+) -> CliResult
+where
+    FGet: Fn(&DeviceHandle) -> DeviceResult<bool>,
+    FSet: Fn(&DeviceHandle, bool) -> DeviceResult<()>,
+{
     let context = Litra::new()?;
-
-    // Get all matched devices
     let devices = get_all_supported_devices(&context, serial_number, device_path, device_type)?;
     if devices.is_empty() {
         return Err(CliError::DeviceNotFound);
     }
 
-    // Toggle each device individually
     for device_handle in devices {
-        // Toggle each device individually, ignoring errors
-        if let Ok(is_on) = device_handle.is_on() {
-            let _ = device_handle.set_on(!is_on);
+        if let Ok(is_on) = get_state(&device_handle) {
+            let _ = set_state(&device_handle, !is_on);
         }
     }
     Ok(())
+}
+
+fn handle_toggle_command(
+    serial_number: Option<&str>,
+    device_path: Option<&str>,
+    device_type: Option<&DeviceType>,
+) -> CliResult {
+    with_toggle(
+        serial_number,
+        device_path,
+        device_type,
+        |h| h.is_on(),
+        |h, on| h.set_on(on),
+    )
 }
 
 /// Create a general purpose function to handle brightness setting
@@ -1161,28 +1177,13 @@ fn handle_back_on_command(serial_number: Option<&str>, device_path: Option<&str>
 }
 
 fn handle_back_toggle_command(serial_number: Option<&str>, device_path: Option<&str>) -> CliResult {
-    // Get context to work with devices
-    let context = Litra::new()?;
-
-    // Get all matched devices (only Litra Beam LX supports back light)
-    let devices = get_all_supported_devices(
-        &context,
+    with_toggle(
         serial_number,
         device_path,
         Some(&DeviceType::LitraBeamLX),
-    )?;
-    if devices.is_empty() {
-        return Err(CliError::DeviceNotFound);
-    }
-
-    // Toggle each device individually
-    for device_handle in devices {
-        // Toggle each device individually, ignoring errors
-        if let Ok(is_on) = device_handle.is_back_on() {
-            let _ = device_handle.set_back_on(!is_on);
-        }
-    }
-    Ok(())
+        |h| h.is_back_on(),
+        |h, on| h.set_back_on(on),
+    )
 }
 
 fn handle_back_brightness_up_command(
