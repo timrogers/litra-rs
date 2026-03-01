@@ -1,5 +1,5 @@
 use clap::{builder::TypedValueParser, ArgGroup, Parser, Subcommand, ValueEnum};
-use litra::{Device, DeviceError, DeviceHandle, DeviceResult, DeviceType, Litra};
+use litra::{Device, DeviceError, DeviceHandle, DeviceResult, DeviceType, Litra, VENDOR_ID};
 use serde::Serialize;
 use std::fmt;
 use std::process::ExitCode;
@@ -841,7 +841,6 @@ fn handle_devices_command(json: bool, verbose: bool) -> CliResult {
     let context = Litra::new()?;
 
     if verbose {
-        let vendor_id: u16 = 0x046d;
         eprintln!("Enumerating HID devices...\n");
 
         let mut logitech_count = 0;
@@ -850,7 +849,7 @@ fn handle_devices_command(json: bool, verbose: bool) -> CliResult {
         for hid_device_info in context.hidapi().device_list() {
             total_count += 1;
 
-            if hid_device_info.vendor_id() == vendor_id {
+            if hid_device_info.vendor_id() == VENDOR_ID {
                 logitech_count += 1;
                 eprintln!(
                     "  Logitech HID device: vendor_id=0x{:04x}, product_id=0x{:04x}, usage_page=0x{:04x}, \

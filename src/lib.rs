@@ -32,6 +32,7 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 
@@ -66,7 +67,7 @@ impl Litra {
         // When a device exposes multiple HID interfaces (e.g. standard HID + vendor-specific),
         // each may appear as a separate hidraw node. Prefer the vendor-specific interface
         // (usage_page 0xff43) for devices that have one, to avoid duplicates.
-        let preferred_serials: std::collections::HashSet<String> = devices
+        let preferred_serials: HashSet<String> = devices
             .iter()
             .filter(|d| d.device_info.usage_page() == USAGE_PAGE)
             .filter_map(|d| {
@@ -526,7 +527,8 @@ impl DeviceHandle {
     }
 }
 
-const VENDOR_ID: u16 = 0x046d;
+/// The Logitech USB vendor ID.
+pub const VENDOR_ID: u16 = 0x046d;
 const USAGE_PAGE: u16 = 0xff43;
 
 fn device_type_from_product_id(product_id: u16) -> Option<DeviceType> {
