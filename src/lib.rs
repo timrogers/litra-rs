@@ -62,6 +62,37 @@ impl Litra {
             .device_list()
             .filter_map(|device_info| Device::try_from(device_info).ok())
             .collect();
+
+        // When a device exposes multiple HID interfaces (e.g. standard HID + vendor-specific),
+        // each may appear as a separate hidraw node. Prefer the vendor-specific interface
+        // (usage_page 0xff43) for devices that have one, to avoid duplicates.
+        let preferred_serials: std::collections::HashSet<String> = devices
+            .iter()
+            .filter(|d| d.device_info.usage_page() == USAGE_PAGE)
+            .filter_map(|d| {
+                d.device_info
+                    .serial_number()
+                    .filter(|s| !s.is_empty())
+                    .map(String::from)
+            })
+            .collect();
+
+        if !preferred_serials.is_empty() {
+            devices.retain(|d| {
+                let serial = d
+                    .device_info
+                    .serial_number()
+                    .filter(|s| !s.is_empty())
+                    .map(String::from);
+                match serial {
+                    Some(s) if preferred_serials.contains(&s) => {
+                        d.device_info.usage_page() == USAGE_PAGE
+                    }
+                    _ => true,
+                }
+            });
+        }
+
         devices.sort_by_key(|a| a.device_path());
         devices.into_iter()
     }
@@ -216,7 +247,7 @@ impl<'a> TryFrom<&'a DeviceInfo> for Device<'a> {
     type Error = DeviceError;
 
     fn try_from(device_info: &'a DeviceInfo) -> Result<Self, DeviceError> {
-        if device_info.vendor_id() != VENDOR_ID || device_info.usage_page() != USAGE_PAGE {
+        if device_info.vendor_id() != VENDOR_ID {
             return Err(DeviceError::Unsupported);
         }
         device_type_from_product_id(device_info.product_id())
