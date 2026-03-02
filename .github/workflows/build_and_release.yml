@@ -112,11 +112,11 @@ jobs:
         id: sanitise_ref
         run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
       - name: Download macOS amd64 binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
       - name: Download macOS arm64 binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
       - name: Create universal macOS binary
@@ -180,25 +180,25 @@ jobs:
       - name: Sanitise Git ref for use in filenames
         id: sanitise_ref
         run: echo "::set-output name=value::$(echo "${{ github.ref_name }}" | tr '/' '_')"
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_linux-amd64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_linux-aarch64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-amd64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-aarch64
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_darwin-universal
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-arm64.exe
       - name: Create release
