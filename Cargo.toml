@@ -14,7 +14,7 @@ keywords = ["logitech", "litra", "glow", "beam", "light"]
 
 [dependencies]
 hidapi = "2.6.4"
-clap = { version = "4.5.56", features = ["derive"], optional = true }
+clap = { version = "4.5.57", features = ["derive"], optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.149" }
 tabled = { version = "0.20", optional = true }
@@ -23,11 +23,11 @@ tokio = { version = "1.49", features = ["rt", "rt-multi-thread", "macros"], opti
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
 schemars = { version = "1.2", features = ["derive"], optional = true }
-ureq = { version = "3.0.11", features = ["json"], optional = true }
+ureq = { version = "3.2.0", features = ["json"], optional = true }
 toml = { version = "0.9.11", optional = true }
 dirs = { version = "6.0.0", optional = true }
 chrono = { version = "0.4.43", default-features = false, features = ["std", "clock"], optional = true }
-colored = { version = "2.2", optional = true }
+colored = { version = "3.1", optional = true }
 
 [features]
 default = ["cli", "mcp"]
