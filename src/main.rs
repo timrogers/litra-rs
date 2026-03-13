@@ -1,5 +1,5 @@
 use clap::{builder::TypedValueParser, ArgGroup, Parser, Subcommand, ValueEnum};
-use litra::{Device, DeviceError, DeviceHandle, DeviceResult, DeviceType, Litra};
+use litra::{Device, DeviceError, DeviceHandle, DeviceResult, DeviceType, Litra, VENDOR_ID};
 use serde::Serialize;
 use std::fmt;
 use std::process::ExitCode;
@@ -503,6 +503,13 @@ enum Commands {
     Devices {
         #[clap(long, short, action, help = "Return the results in JSON format")]
         json: bool,
+        #[clap(
+            long,
+            short,
+            action,
+            help = "Show verbose HID device enumeration details for debugging"
+        )]
+        verbose: bool,
     },
     /// Start a MCP (Model Context Protocol) server for controlling Litra devices
     #[cfg(feature = "mcp")]
@@ -830,7 +837,51 @@ fn get_connected_devices() -> Result<Vec<DeviceInfo>, CliError> {
 }
 
 #[cfg(feature = "cli")]
-fn handle_devices_command(json: bool) -> CliResult {
+fn handle_devices_command(json: bool, verbose: bool) -> CliResult {
+    let context = Litra::new()?;
+
+    if verbose {
+        eprintln!("Enumerating HID devices...\n");
+
+        let mut logitech_count = 0;
+        let mut total_count = 0;
+
+        for hid_device_info in context.hidapi().device_list() {
+            total_count += 1;
+
+            if hid_device_info.vendor_id() == VENDOR_ID {
+                logitech_count += 1;
+                eprintln!(
+                    "  Logitech HID device: vendor_id=0x{:04x}, product_id=0x{:04x}, usage_page=0x{:04x}, \
+                     interface={}, path={}, serial={}, product={}",
+                    hid_device_info.vendor_id(),
+                    hid_device_info.product_id(),
+                    hid_device_info.usage_page(),
+                    hid_device_info.interface_number(),
+                    hid_device_info.path().to_string_lossy(),
+                    hid_device_info.serial_number().unwrap_or("N/A"),
+                    hid_device_info
+                        .product_string()
+                        .unwrap_or("Unknown"),
+                );
+            }
+        }
+
+        eprintln!("\nTotal HID devices: {total_count}, Logitech devices: {logitech_count}");
+
+        let matched: Vec<_> = context.get_connected_devices().collect();
+        eprintln!("Matched Litra devices: {}", matched.len());
+        for device in &matched {
+            eprintln!(
+                "  -> {:?} at {} (usage_page=0x{:04x})",
+                device.device_type(),
+                device.device_path(),
+                device.device_info().usage_page(),
+            );
+        }
+        eprintln!();
+    }
+
     let litra_devices = get_connected_devices()?;
 
     if json {
@@ -1492,7 +1543,7 @@ fn main() -> ExitCode {
     let args = Cli::parse();
 
     let result = match &args.command {
-        Commands::Devices { json } => handle_devices_command(*json),
+        Commands::Devices { json, verbose } => handle_devices_command(*json, *verbose),
         Commands::On {
             serial_number,
             device_path,
