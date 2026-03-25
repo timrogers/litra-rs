@@ -1,0 +1,33 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Install libudev-dev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Use Rust 1.92.0
+        run: rustup override set 1.92.0
+
+      - name: Add clippy and rustfmt components
+        run: rustup component add clippy rustfmt
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
