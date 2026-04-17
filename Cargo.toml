@@ -26,7 +26,7 @@ schemars = { version = "1.2", features = ["derive"], optional = true }
 ureq = { version = "3.2.0", features = ["json"], optional = true }
 toml = { version = "0.8.20", optional = true }
 dirs = { version = "6.0.0", optional = true }
-chrono = { version = "0.4.43", default-features = false, features = ["std", "clock"], optional = true }
+chrono = { version = "0.4.44", default-features = false, features = ["std", "clock"], optional = true }
 colored = { version = "3.1", optional = true }
 
 [features]
