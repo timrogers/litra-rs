@@ -520,21 +520,16 @@ impl LitraMcpServer {
 #[tool_handler]
 impl ServerHandler for LitraMcpServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::builder()
-            .protocol_version(ProtocolVersion::V_2025_03_26)
-            .capabilities(ServerCapabilities::builder().enable_tools().build())
-            .server_info(
-                Implementation::builder()
-                    .name(env!("CARGO_PKG_NAME").to_owned())
-                    .title(Some("Litra".to_owned()))
-                    .version(env!("CARGO_PKG_VERSION").to_owned())
-                    .icons(None)
-                    .website_url(Some("https://github.com/timrogers/litra-rs".to_owned()))
-                    .description(None)
-                    .build(),
-            )
-            .instructions(None)
-            .build()
+        let mut server_info =
+            Implementation::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        server_info.title = Some("Litra".to_owned());
+        server_info.website_url = Some("https://github.com/timrogers/litra-rs".to_owned());
+
+        let mut server = ServerInfo::new(ServerCapabilities::builder().enable_tools().build());
+        server.protocol_version = ProtocolVersion::V_2025_03_26;
+        server.server_info = server_info;
+        server.instructions = None;
+        server
     }
 }
 
