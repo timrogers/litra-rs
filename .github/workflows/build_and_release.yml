@@ -202,7 +202,7 @@ jobs:
         with:
           name: litra_${{ steps.sanitise_ref.outputs.value }}_windows-arm64.exe
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             litra_${{ steps.sanitise_ref.outputs.value }}_windows-amd64.exe
