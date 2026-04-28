@@ -2,10 +2,7 @@ use std::str::FromStr;
 
 use litra::DeviceType;
 use rmcp::{
-    handler::server::{
-        tool::ToolRouter,
-        wrapper::{Json, Parameters},
-    },
+    handler::server::wrapper::{Json, Parameters},
     model::*,
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
@@ -99,17 +96,13 @@ pub struct LitraBackColorParams {
     pub zone_id: Option<u8>,
 }
 
-#[derive(Clone)]
-pub struct LitraMcpServer {
-    tool_router: ToolRouter<LitraMcpServer>,
-}
+#[derive(Clone, Default)]
+pub struct LitraMcpServer;
 
 #[tool_router]
 impl LitraMcpServer {
     pub fn new() -> Self {
-        Self {
-            tool_router: Self::tool_router(),
-        }
+        Self
     }
 
     #[tool(
