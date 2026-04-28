@@ -1,0 +1,28 @@
+name: "Copilot Setup Steps"
+
+on: workflow_dispatch
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install libudev-dev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+
+      - name: Use Rust 1.92.0
+        run: rustup override set 1.92.0
+
+      - name: Install Rust components
+        run: rustup component add clippy rustfmt
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install pre-commit hooks
+        run: pre-commit install
