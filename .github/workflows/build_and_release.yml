@@ -61,6 +61,8 @@ jobs:
       - name: Use Rust 1.95.0 with target ${{ matrix.job.target }}
         run: rustup override set 1.95.0-${{ matrix.job.target }}
       - uses: Swatinem/rust-cache@v2
+      - name: Run tests
+        run: cargo test --target=${{ matrix.job.target }}
       - name: Build in release mode
         run: cargo build --release --target=${{ matrix.job.target }}
       - name: Sanitise Git ref for use in filenames
