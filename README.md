@@ -51,7 +51,11 @@ The following Logitech Litra devices, __connected via USB__, are supported:
 
 On most Linux operating systems, you will need to manually configure permissions using [`udev`](https://www.man7.org/linux/man-pages/man7/udev.7.html) to allow non-`root` users to access and manage Litra devices.
 
-To allow all users that are part of the `video` group to access the Litra devices, copy the [`99-litra.rules`](99-litra.rules) file into `/etc/udev/rules.d`.
+Your user account must be a member of the `video` group for non-`root` access to work. You can add your current user to that group with:
+
+    $ sudo usermod -aG video $USER
+
+To allow users in the `video` group to access the Litra devices, copy the [`99-litra.rules`](99-litra.rules) file into `/etc/udev/rules.d`.
 Next, reboot your computer or run the following commands as `root`:
 
     # udevadm control --reload-rules
