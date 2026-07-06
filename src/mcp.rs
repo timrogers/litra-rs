@@ -3,6 +3,7 @@ use std::str::FromStr;
 use litra::DeviceType;
 use rmcp::{
     handler::server::wrapper::{Json, Parameters},
+    model::ContentBlock as Content,
     model::*,
     schemars, tool, tool_handler, tool_router,
     transport::stdio,
