@@ -513,13 +513,13 @@ impl LitraMcpServer {
 
 #[tool_handler]
 impl ServerHandler for LitraMcpServer {
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         let mut server_info =
             Implementation::new(env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         server_info.title = Some("Litra".to_owned());
         server_info.website_url = Some("https://github.com/timrogers/litra-rs".to_owned());
 
-        let mut server = ServerInfo::new(ServerCapabilities::builder().enable_tools().build());
+        let mut server = ServerConfig::new(ServerCapabilities::builder().enable_tools().build());
         server.protocol_version = ProtocolVersion::V_2025_03_26;
         server.server_info = server_info;
         server.instructions = None;
