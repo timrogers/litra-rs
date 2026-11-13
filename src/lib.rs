@@ -504,6 +504,7 @@ fn device_type_from_product_id(product_id: u16) -> Option<DeviceType> {
         0xc901 => DeviceType::LitraBeam.into(),
         0xb901 => DeviceType::LitraBeam.into(),
         0xc903 => DeviceType::LitraBeamLX.into(),
+        0xb903 => DeviceType::LitraBeamLX.into(),
         _ => None,
     }
 }
@@ -722,4 +723,34 @@ fn generate_get_back_brightness_percentage_bytes() -> [u8; 20] {
         0x11, 0xff, 0x0a, 0x1b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00,
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_product_ids_to_device_types() {
+        assert_eq!(
+            device_type_from_product_id(0xc900),
+            Some(DeviceType::LitraGlow)
+        );
+        assert_eq!(
+            device_type_from_product_id(0xc901),
+            Some(DeviceType::LitraBeam)
+        );
+        assert_eq!(
+            device_type_from_product_id(0xb901),
+            Some(DeviceType::LitraBeam)
+        );
+        assert_eq!(
+            device_type_from_product_id(0xc903),
+            Some(DeviceType::LitraBeamLX)
+        );
+        assert_eq!(
+            device_type_from_product_id(0xb903),
+            Some(DeviceType::LitraBeamLX)
+        );
+        assert_eq!(device_type_from_product_id(0x0000), None);
+    }
 }
